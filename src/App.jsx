@@ -7,10 +7,24 @@ import AdminDashboard from "./components/AdminDashboard.jsx";
 import ManageScreen from "./components/ManageScreen.jsx";
 import ReportsScreen from "./components/ReportsScreen.jsx";
 import Toast from "./components/Toast.jsx";
-import { makeCircles, ADMIN_PASSWORD, genCode, arNum } from "./data.js";
+import { ADMIN_PASSWORD, SCORE_KEYS, genCode, arNum } from "./data.js";
+import {
+  loadCircles, saveCircle, removeCircle, saveStudents, saveStudentName,
+  removeStudent, saveAccessCode, saveEvaluation,
+} from "./api/repo.js";
 
 const uid = () =>
   (window.crypto?.randomUUID?.() || String(Date.now()) + Math.random().toString(36).slice(2));
+
+const ADMIN_PW = import.meta.env.VITE_ADMIN_PASSWORD || ADMIN_PASSWORD;
+const evalTotal = (scores) => SCORE_KEYS.reduce((a, k) => a + (Number(scores?.[k]) || 0), 0);
+
+// حفظ الجلسة محلياً كي لا يخرج المستخدم عند تحديث الصفحة
+const SESSION_KEY = "taj_session";
+const readSession = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)) || null; } catch { return null; } };
+const saveSession = (s) => { try { s ? localStorage.setItem(SESSION_KEY, JSON.stringify(s)) : localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ } };
+const viewForSession = (s) =>
+  !s ? { name: "students" } : s.role === "admin" ? { name: "admin" } : { name: "students", circleId: s.circleId };
 
 function Splash() {
   return (
@@ -31,19 +45,38 @@ function Splash() {
 }
 
 export default function App() {
-  const [circles, setCircles] = useState(makeCircles);
-  const [session, setSession] = useState(null); // null | {role:'sheikh', circleId} | {role:'admin'}
-  const [view, setView] = useState({ name: "students" });
+  const initialSession = readSession();
+  const [circles, setCircles] = useState([]);
+  const [session, setSession] = useState(initialSession); // null | {role:'sheikh', circleId} | {role:'admin'}
+  const [view, setView] = useState(viewForSession(initialSession));
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [theme, setTheme] = useState(null);
   const [toast, setToast] = useState({ msg: "", ok: true, visible: false });
   const [loading, setLoading] = useState(true);
   const toastTimer = useRef(null);
 
+  // تحميل البيانات (من Supabase إن ضُبطت المفاتيح، وإلا بيانات وهمية)
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 650);
-    return () => clearTimeout(t);
+    let alive = true;
+    loadCircles()
+      .then((cs) => {
+        if (!alive) return;
+        setCircles(cs);
+        // إن كانت جلسة معلّم محفوظة لحلقة لم تعد موجودة، أخرجه
+        if (initialSession?.role === "sheikh" && !cs.some((c) => c.id === initialSession.circleId)) {
+          saveSession(null); setSession(null); setView({ name: "students" });
+        }
+      })
+      .catch((e) => { console.error(e); if (alive) showToast("تعذّر تحميل البيانات من الخادم", false); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
   }, []);
+
+  // حفظ في الخلفية مع تنبيه عند الفشل
+  const persist = (fn) => Promise.resolve().then(fn).catch((e) => {
+    console.error(e);
+    showToast("تعذّر الحفظ في الخادم — تحقّق من الاتصال", false);
+  });
 
   useEffect(() => {
     const root = document.documentElement;
@@ -74,8 +107,9 @@ export default function App() {
   // ---- المصادقة (تمثيلية للنموذج — تُستبدل بنداء API) ----
   const login = (mode, secret) => {
     if (mode === "admin") {
-      if (secret === ADMIN_PASSWORD) {
-        setSession({ role: "admin" });
+      if (secret === ADMIN_PW) {
+        const s = { role: "admin" };
+        setSession(s); saveSession(s);
         setView({ name: "admin" });
         return { ok: true };
       }
@@ -84,7 +118,8 @@ export default function App() {
     const code = secret.trim().toLowerCase();
     const circle = circles.find((c) => c.accessCode.toLowerCase() === code);
     if (circle) {
-      setSession({ role: "sheikh", circleId: circle.id });
+      const s = { role: "sheikh", circleId: circle.id };
+      setSession(s); saveSession(s);
       setView({ name: "students", circleId: circle.id });
       showToast(`أهلاً بك في ${circle.name}`);
       return { ok: true };
@@ -92,7 +127,7 @@ export default function App() {
     return { ok: false, error: "رمز الحلقة غير صحيح — تحقّق من الرمز أو راجع المشرف" };
   };
 
-  const logout = () => { setSession(null); setView({ name: "students" }); };
+  const logout = () => { setSession(null); saveSession(null); setView({ name: "students" }); };
 
   // ---- تعديل غير قابل للتغيير المباشر ----
   const patchStudent = (circleId, idx, patch) => {
@@ -112,10 +147,12 @@ export default function App() {
     };
     setCircles((prev) => [...prev, circle]);
     showToast(`أُضيفت ${name}`);
+    persist(() => saveCircle(circle));
   };
   const deleteCircle = (id) => {
     setCircles((prev) => prev.filter((c) => c.id !== id));
     showToast("حُذفت الحلقة");
+    persist(() => removeCircle(id));
   };
   const addStudents = (circleId, names) => {
     const clean = names.map((n) => n.trim()).filter(Boolean);
@@ -126,14 +163,17 @@ export default function App() {
     }));
     setCircles((prev) => prev.map((c) => c.id === circleId ? { ...c, students: [...c.students, ...newOnes] } : c));
     showToast(clean.length > 1 ? `أُضيف ${arNum(clean.length)} طلاب` : `أُضيف ${clean[0]}`);
+    persist(() => saveStudents(circleId, newOnes));
   };
   const renameStudent = (circleId, sid, name) => {
     setCircles((prev) => prev.map((c) => c.id !== circleId ? c
       : { ...c, students: c.students.map((s) => s.id === sid ? { ...s, name } : s) }));
+    persist(() => saveStudentName(sid, name));
   };
   const deleteStudent = (circleId, sid) => {
     setCircles((prev) => prev.map((c) => c.id !== circleId ? c
       : { ...c, students: c.students.filter((s) => s.id !== sid) }));
+    persist(() => removeStudent(sid));
   };
 
   const handlePersist = (idx, { scores, ranges, notes }) => {
@@ -145,6 +185,7 @@ export default function App() {
     patchStudent(circleId, idx, { scores: { ...scores }, ranges: { ...ranges }, notes, done: true });
 
     const students = circleById(circleId).students;
+    persist(() => saveEvaluation(students[idx].id, date, { scores, ranges, notes, total: evalTotal(scores), done: true }));
     const isDone = (i) => i === idx || students[i].done;
     let next = -1;
     for (let step = 1; step < students.length; step++) {
@@ -184,7 +225,7 @@ export default function App() {
         circles={circles}
         date={date}
         onOpenCircle={(id) => setView({ name: "students", circleId: id, from: "admin" })}
-        onSetCode={(id, code) => patchCircle(id, { accessCode: code })}
+        onSetCode={(id, code) => { patchCircle(id, { accessCode: code }); persist(() => saveAccessCode(id, code)); }}
         onManage={() => setView({ name: "manage" })}
         onReports={() => setView({ name: "reports" })}
         toast={showToast}

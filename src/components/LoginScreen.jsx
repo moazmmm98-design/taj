@@ -2,6 +2,7 @@ import { useState } from "react";
 import Icon from "./Icon.jsx";
 import logo from "../assets/logo.jpg";
 import { ORG } from "../data.js";
+import { hasSupabase } from "../lib/supabase.js";
 
 export default function LoginScreen({ onLogin }) {
   const [mode, setMode] = useState("sheikh"); // 'sheikh' | 'admin'
@@ -68,8 +69,10 @@ export default function LoginScreen({ onLogin }) {
 
         <div className="login-hint">
           {mode === "admin"
-            ? <>للتجربة، كلمة المرور: <code>admin1234</code></>
-            : <>احصل على رمز حلقتك من المشرف · للتجربة ادخل كمشرف وانسخ أحد الرموز</>}
+            ? (hasSupabase
+                ? <>أدخل كلمة مرور المشرف الخاصة بك</>
+                : <>للتجربة، كلمة المرور: <code>admin1234</code></>)
+            : <>احصل على رمز حلقتك من المشرف</>}
         </div>
       </div>
 
