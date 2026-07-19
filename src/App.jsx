@@ -10,8 +10,9 @@ import Toast from "./components/Toast.jsx";
 import { ADMIN_PASSWORD, SCORE_KEYS, genCode, arNum } from "./data.js";
 import {
   loadCircles, saveCircle, removeCircle, saveStudents, saveStudentName,
-  removeStudent, saveAccessCode, saveEvaluation,
+  removeStudent, saveAccessCode, saveEvaluation, getAdminPasswordHash, setAdminPasswordHash,
 } from "./api/repo.js";
+import { sha256Hex } from "./lib/hash.js";
 
 const uid = () =>
   (window.crypto?.randomUUID?.() || String(Date.now()) + Math.random().toString(36).slice(2));
@@ -53,7 +54,13 @@ export default function App() {
   const [theme, setTheme] = useState(null);
   const [toast, setToast] = useState({ msg: "", ok: true, visible: false });
   const [loading, setLoading] = useState(true);
+  const [adminHash, setAdminHash] = useState(undefined); // undefined=لم تُحمّل · null=لا توجد · نص=تجزئة
   const toastTimer = useRef(null);
+
+  // جلب كلمة مرور المشرف المخزّنة (إن وُجدت)
+  useEffect(() => {
+    getAdminPasswordHash().then((h) => setAdminHash(h || null)).catch((e) => { console.error(e); setAdminHash(null); });
+  }, []);
 
   // تحميل البيانات (من Supabase إن ضُبطت المفاتيح، وإلا بيانات وهمية)
   useEffect(() => {
@@ -104,10 +111,20 @@ export default function App() {
 
   const circleById = (id) => circles.find((c) => c.id === id);
 
-  // ---- المصادقة (تمثيلية للنموذج — تُستبدل بنداء API) ----
-  const login = (mode, secret) => {
+  // كلمة المرور صحيحة؟ (التجزئة المخزّنة إن وُجدت، وإلا قيمة البيئة/الافتراضية)
+  const checkAdminPassword = async (secret) => {
+    let h = adminHash;
+    if (h === undefined) { // لم تُحمّل بعد — اجلبها الآن لتفادي التسابق
+      try { h = await getAdminPasswordHash(); } catch { h = null; }
+      setAdminHash(h || null);
+    }
+    return h ? (await sha256Hex(secret)) === h : secret === ADMIN_PW;
+  };
+
+  // ---- المصادقة (رمز الحلقة للمعلّم، كلمة مرور للمشرف) ----
+  const login = async (mode, secret) => {
     if (mode === "admin") {
-      if (secret === ADMIN_PW) {
+      if (await checkAdminPassword(secret)) {
         const s = { role: "admin" };
         setSession(s); saveSession(s);
         setView({ name: "admin" });
@@ -128,6 +145,18 @@ export default function App() {
   };
 
   const logout = () => { setSession(null); saveSession(null); setView({ name: "students" }); };
+
+  // تغيير كلمة مرور المشرف
+  const changeAdminPassword = async (current, next) => {
+    if (!(await checkAdminPassword(current))) return { ok: false, error: "كلمة المرور الحالية غير صحيحة" };
+    if (!next || next.length < 4) return { ok: false, error: "الكلمة الجديدة قصيرة (٤ أحرف على الأقل)" };
+    const hash = await sha256Hex(next);
+    try { await setAdminPasswordHash(hash); }
+    catch (e) { console.error(e); return { ok: false, error: "تعذّر الحفظ في الخادم" }; }
+    setAdminHash(hash);
+    showToast("تم تغيير كلمة مرور المشرف");
+    return { ok: true };
+  };
 
   // ---- تعديل غير قابل للتغيير المباشر ----
   const patchStudent = (circleId, idx, patch) => {
@@ -228,6 +257,7 @@ export default function App() {
         onSetCode={(id, code) => { patchCircle(id, { accessCode: code }); persist(() => saveAccessCode(id, code)); }}
         onManage={() => setView({ name: "manage" })}
         onReports={() => setView({ name: "reports" })}
+        onChangePassword={changeAdminPassword}
         toast={showToast}
       />
     );

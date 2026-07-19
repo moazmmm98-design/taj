@@ -681,6 +681,12 @@ input, textarea { font-family: inherit; }
   @page { margin: 1.4cm; }
 }
 
+/* ===================== admin password ===================== */
+.pw-form { display: flex; flex-direction: column; gap: 11px; max-width: 380px; }
+.pw-show { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); cursor: pointer; }
+.pw-show input { width: 15px; height: 15px; accent-color: var(--primary); }
+.pw-actions { display: flex; gap: 8px; margin-top: 2px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .05ms !important; }
 }

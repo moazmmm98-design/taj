@@ -90,3 +90,20 @@ export async function saveEvaluation(studentId, date, { scores, ranges, notes, t
   );
   if (error) throw error;
 }
+
+// ============ إعدادات التطبيق (كلمة مرور المشرف) ============
+export async function getAdminPasswordHash() {
+  if (!hasSupabase) return null;
+  const { data, error } = await supabase
+    .from("app_config").select("value").eq("key", "admin_password_hash").maybeSingle();
+  if (error) throw error;
+  return data?.value || null;
+}
+export async function setAdminPasswordHash(hash) {
+  if (!hasSupabase) return;
+  const { error } = await supabase.from("app_config").upsert(
+    { key: "admin_password_hash", value: hash, updated_at: new Date().toISOString() },
+    { onConflict: "key" }
+  );
+  if (error) throw error;
+}

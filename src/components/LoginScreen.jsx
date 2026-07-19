@@ -12,11 +12,18 @@ export default function LoginScreen({ onLogin }) {
 
   const switchMode = (m) => { setMode(m); setSecret(""); setError(""); setShow(false); };
 
-  const submit = (e) => {
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e) => {
     e.preventDefault();
     if (!secret.trim()) return setError(mode === "admin" ? "أدخل كلمة مرور المشرف" : "أدخل رمز الحلقة");
-    const res = onLogin(mode, secret);
-    if (!res.ok) setError(res.error);
+    setBusy(true);
+    try {
+      const res = await onLogin(mode, secret);
+      if (!res.ok) setError(res.error);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -62,8 +69,8 @@ export default function LoginScreen({ onLogin }) {
 
           {error && <div className="login-error"><Icon name="alert-triangle" size={14} /> {error}</div>}
 
-          <button type="submit" className="login-btn">
-            {mode === "admin" ? "دخول لوحة المشرف" : "دخول الحلقة"}
+          <button type="submit" className="login-btn" disabled={busy}>
+            {busy ? "جارٍ الدخول…" : (mode === "admin" ? "دخول لوحة المشرف" : "دخول الحلقة")}
           </button>
         </form>
 

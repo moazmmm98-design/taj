@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import Icon from "./Icon.jsx";
 import AccessManager from "./AccessManager.jsx";
+import AdminPassword from "./AdminPassword.jsx";
 import {
   arNum, initials, totalOf, gradeOf, MAX_TOTAL,
   overallStats, circleStats, gradeDistribution, leaderboard, attentionList, makeWeekTrend,
@@ -132,7 +133,7 @@ function statusOf(st) {
 }
 
 /* ============ main ============ */
-export default function AdminDashboard({ circles, date, onOpenCircle, onSetCode, onManage, onReports, toast }) {
+export default function AdminDashboard({ circles, date, onOpenCircle, onSetCode, onManage, onReports, onChangePassword, toast }) {
   const overall = useMemo(() => overallStats(circles), [circles]);
   const perCircle = useMemo(() => circles.map((c) => ({ c, st: circleStats(c) })), [circles]);
   const dist = useMemo(() => gradeDistribution(circles), [circles]);
@@ -248,6 +249,9 @@ export default function AdminDashboard({ circles, date, onOpenCircle, onSetCode,
 
       {/* access codes */}
       <AccessManager circles={circles} onSetCode={onSetCode} toast={toast} />
+
+      {/* admin password */}
+      <AdminPassword onChangePassword={onChangePassword} />
     </div>
   );
 }
