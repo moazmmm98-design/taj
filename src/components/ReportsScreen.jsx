@@ -249,10 +249,11 @@ function ReportHeader({ title, subtitle, range, single }) {
 }
 
 /* ============ main ============ */
-export default function ReportsScreen({ role, circles, date, onBack }) {
+export default function ReportsScreen({ role, circles, date, onBack, lockStudentId }) {
+  const isParent = role === "parent";
   const [period, setPeriod] = useState("daily");
   const [circleId, setCircleId] = useState(role === "admin" ? "all" : circles[0].id);
-  const [studentId, setStudentId] = useState("all");
+  const [studentId, setStudentId] = useState(lockStudentId || "all");
   const [anchor, setAnchor] = useState(date);
 
   const range = periodRange(anchor, period);
@@ -269,14 +270,16 @@ export default function ReportsScreen({ role, circles, date, onBack }) {
   return (
     <div className="page admin">
       <div className="no-print">
-        <button className="back-link" onClick={onBack}>
-          <Icon name="chevron-right" size={16} /> {role === "admin" ? "لوحة المشرف" : "الطلاب"}
-        </button>
+        {onBack && (
+          <button className="back-link" onClick={onBack}>
+            <Icon name="chevron-right" size={16} /> {role === "admin" ? "لوحة المشرف" : "الطلاب"}
+          </button>
+        )}
         <div className="admin-top">
           <div>
-            <div className="eyebrow"><Icon name="printer" size={13} className="ic-lead" /> التقارير</div>
-            <h1 className="h1">التقارير والطباعة</h1>
-            <p className="sub">اختر النطاق والفترة ثم اطبع أو احفظ PDF</p>
+            <div className="eyebrow"><Icon name={isParent ? "users" : "printer"} size={13} className="ic-lead" /> {isParent ? "متابعة ولي الأمر" : "التقارير"}</div>
+            <h1 className="h1">{isParent ? "متابعة أداء الطالب" : "التقارير والطباعة"}</h1>
+            <p className="sub">{isParent ? "تابع تقييم ابنك يومياً وأسبوعياً وشهرياً — ويمكنك طباعته" : "اختر النطاق والفترة ثم اطبع أو احفظ PDF"}</p>
           </div>
           <button className="manage-btn print-btn" onClick={() => window.print()}>
             <Icon name="printer" size={16} /> طباعة / حفظ PDF
@@ -302,7 +305,7 @@ export default function ReportsScreen({ role, circles, date, onBack }) {
                 </select>
               </label>
             )}
-            {circle && (
+            {circle && !lockStudentId && (
               <label className="rep-select"><span>الطالب</span>
                 <select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
                   <option value="all">كل الطلاب</option>

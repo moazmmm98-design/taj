@@ -10,7 +10,7 @@ export async function loadCircles() {
 
   const { data: circles, error } = await supabase
     .from("circles")
-    .select("id,name,teacher,icon,access_code,students(id,name,juz)")
+    .select("id,name,teacher,icon,access_code,students(id,name,juz,parent_code)")
     .order("created_at", { ascending: true });
   if (error) throw error;
 
@@ -38,7 +38,7 @@ export async function loadCircles() {
       const today = recs.find((r) => r.date === TODAY);
       const yRec = recs.find((r) => r.date === yesterday);
       return {
-        id: s.id, name: s.name, juz: s.juz || 0,
+        id: s.id, name: s.name, juz: s.juz || 0, parentCode: s.parent_code || "",
         scores: today?.scores || {}, ranges: today?.ranges || {}, notes: today?.notes || "",
         done: Boolean(today?.done),
         yesterday: { scores: yRec?.scores || {}, ranges: yRec?.ranges || {} },
@@ -72,13 +72,18 @@ export async function removeCircle(id) {
 }
 export async function saveStudents(circleId, students) {
   if (!hasSupabase) return;
-  const rows = students.map((s) => ({ id: s.id, circle_id: circleId, name: s.name, juz: s.juz || 0 }));
+  const rows = students.map((s) => ({ id: s.id, circle_id: circleId, name: s.name, juz: s.juz || 0, parent_code: s.parentCode || null }));
   const { error } = await supabase.from("students").insert(rows);
   if (error) throw error;
 }
 export async function saveStudentName(id, name) {
   if (!hasSupabase) return;
   const { error } = await supabase.from("students").update({ name }).eq("id", id);
+  if (error) throw error;
+}
+export async function saveStudentParentCode(id, code) {
+  if (!hasSupabase) return;
+  const { error } = await supabase.from("students").update({ parent_code: code }).eq("id", id);
   if (error) throw error;
 }
 export async function removeStudent(id) {

@@ -134,7 +134,7 @@ function statusOf(st) {
 }
 
 /* ============ main ============ */
-export default function AdminDashboard({ circles, date, isSuper, admins, onCreateAdmin, onUpdateAdmin, onDeleteAdmin, onOpenCircle, onSetCode, onManage, onReports, onChangePassword, toast }) {
+export default function AdminDashboard({ circles, date, isSuper, admins, onCreateAdmin, onUpdateAdmin, onDeleteAdmin, onOpenCircle, onSetCode, onManage, onReports, onParents, onChangePassword, toast }) {
   const overall = useMemo(() => overallStats(circles), [circles]);
   const perCircle = useMemo(() => circles.map((c) => ({ c, st: circleStats(c) })), [circles]);
   const dist = useMemo(() => gradeDistribution(circles), [circles]);
@@ -165,6 +165,7 @@ export default function AdminDashboard({ circles, date, isSuper, admins, onCreat
         <div className="admin-top-actions">
           <button className="manage-btn" onClick={onReports}><Icon name="printer" size={16} /> التقارير والطباعة</button>
           <button className="manage-btn" onClick={onManage}><Icon name="settings" size={16} /> إدارة الحلقات والطلاب</button>
+          {isSuper && <button className="manage-btn" onClick={onParents}><Icon name="users" size={16} /> أكواد أولياء الأمور</button>}
         </div>
       </div>
 

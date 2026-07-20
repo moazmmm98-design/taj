@@ -5,12 +5,13 @@ import StudentsScreen from "./components/StudentsScreen.jsx";
 import EvalScreen from "./components/EvalScreen.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import ManageScreen from "./components/ManageScreen.jsx";
+import ParentAccessScreen from "./components/ParentAccessScreen.jsx";
 import ReportsScreen from "./components/ReportsScreen.jsx";
 import Toast from "./components/Toast.jsx";
 import { ADMIN_PASSWORD, SCORE_KEYS, genCode, arNum } from "./data.js";
 import {
   loadCircles, saveCircle, saveCircleInfo, removeCircle, saveStudents, saveStudentName,
-  removeStudent, saveAccessCode, saveEvaluation, getAdminPasswordHash, setAdminPasswordHash,
+  saveStudentParentCode, removeStudent, saveAccessCode, saveEvaluation, getAdminPasswordHash, setAdminPasswordHash,
   listAdmins, findAdminByPassword, getAdminById, createAdmin, updateAdmin, deleteAdmin,
 } from "./api/repo.js";
 import { sha256Hex } from "./lib/hash.js";
@@ -27,7 +28,10 @@ const SESSION_KEY = "taj_session";
 const readSession = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)) || null; } catch { return null; } };
 const saveSession = (s) => { try { s ? localStorage.setItem(SESSION_KEY, JSON.stringify(s)) : localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ } };
 const viewForSession = (s) =>
-  !s ? { name: "students" } : s.role === "admin" ? { name: "admin" } : { name: "students", circleId: s.circleId };
+  !s ? { name: "students" }
+    : s.role === "admin" ? { name: "admin" }
+    : s.role === "parent" ? { name: "reports" }
+    : { name: "students", circleId: s.circleId };
 
 function Splash() {
   return (
@@ -92,6 +96,13 @@ export default function App() {
         if (initialSession?.role === "sheikh" && !cs.some((c) => c.id === initialSession.circleId)) {
           saveSession(null); setSession(null); setView({ name: "students" });
         }
+        // إن كانت جلسة ولي أمر لطالب لم يعد موجوداً، أخرجه
+        if (initialSession?.role === "parent") {
+          const c = cs.find((c) => c.id === initialSession.circleId);
+          if (!c?.students.some((s) => s.id === initialSession.studentId)) {
+            saveSession(null); setSession(null); setView({ name: "students" });
+          }
+        }
       })
       .catch((e) => { console.error(e); if (alive) showToast("تعذّر تحميل البيانات من الخادم", false); })
       .finally(() => { if (alive) setLoading(false); });
@@ -110,11 +121,13 @@ export default function App() {
     else root.removeAttribute("data-theme");
   }, [theme]);
 
-  // توسيع العرض في شاشات المشرف الواسعة
+  // توسيع العرض في شاشات المشرف الواسعة (وعرض مريح لتقرير ولي الأمر)
   useEffect(() => {
-    const wideViews = ["admin", "manage", "reports"];
-    const wide = session?.role === "admin" && wideViews.includes(view.name);
-    document.documentElement.style.setProperty("--maxw", wide ? "1060px" : "560px");
+    const wideViews = ["admin", "manage", "reports", "parents"];
+    let mw = "560px";
+    if (session?.role === "admin" && wideViews.includes(view.name)) mw = "1060px";
+    else if (session?.role === "parent") mw = "820px";
+    document.documentElement.style.setProperty("--maxw", mw);
   }, [session, view.name]);
 
   const showToast = (msg, ok = true) => {
@@ -162,6 +175,20 @@ export default function App() {
         }
       } catch (e) { console.error(e); }
       return { ok: false, error: "كلمة مرور المشرف غير صحيحة" };
+    }
+    if (mode === "parent") {
+      const code = secret.trim().toLowerCase();
+      for (const c of circles) {
+        const child = c.students.find((s) => s.parentCode && s.parentCode.toLowerCase() === code);
+        if (child) {
+          const s = { role: "parent", circleId: c.id, studentId: child.id, name: child.name };
+          setSession(s); saveSession(s);
+          setView({ name: "reports" });
+          showToast(`أهلاً بك — متابعة ${child.name}`);
+          return { ok: true };
+        }
+      }
+      return { ok: false, error: "رمز ولي الأمر غير صحيح — راجع المشرف" };
     }
     const code = secret.trim().toLowerCase();
     const circle = circles.find((c) => c.accessCode.toLowerCase() === code);
@@ -272,12 +299,17 @@ export default function App() {
     const clean = names.map((n) => n.trim()).filter(Boolean);
     if (!clean.length) return;
     const newOnes = clean.map((name) => ({
-      id: uid(), name, juz: 0, scores: {}, ranges: {},
+      id: uid(), name, juz: 0, parentCode: genCode("WALI"), scores: {}, ranges: {},
       yesterday: { scores: {}, ranges: {} }, notes: "", done: false,
     }));
     setCircles((prev) => prev.map((c) => c.id === circleId ? { ...c, students: [...c.students, ...newOnes] } : c));
     showToast(clean.length > 1 ? `أُضيف ${arNum(clean.length)} طلاب` : `أُضيف ${clean[0]}`);
     persist(() => saveStudents(circleId, newOnes));
+  };
+  const setStudentParentCode = (circleId, sid, code) => {
+    setCircles((prev) => prev.map((c) => c.id !== circleId ? c
+      : { ...c, students: c.students.map((s) => s.id === sid ? { ...s, parentCode: code } : s) }));
+    persist(() => saveStudentParentCode(sid, code));
   };
   const renameStudent = (circleId, sid, name) => {
     setCircles((prev) => prev.map((c) => c.id !== circleId ? c
@@ -333,6 +365,14 @@ export default function App() {
     screen = <Splash />;
   } else if (!session) {
     screen = <LoginScreen onLogin={login} />;
+  } else if (session.role === "parent") {
+    const circle = circleById(session.circleId);
+    const child = circle?.students.find((s) => s.id === session.studentId);
+    screen = circle && child ? (
+      <ReportsScreen role="parent" circles={[circle]} date={date} onBack={null} lockStudentId={child.id} />
+    ) : (
+      <div className="page"><div className="empty">تعذّر العثور على سجل الطالب — راجع المشرف</div></div>
+    );
   } else if (session.role === "admin" && view.name === "admin") {
     screen = (
       <AdminDashboard
@@ -347,6 +387,7 @@ export default function App() {
         onSetCode={(id, code) => { patchCircle(id, { accessCode: code }); persist(() => saveAccessCode(id, code)); }}
         onManage={() => setView({ name: "manage" })}
         onReports={() => setView({ name: "reports" })}
+        onParents={() => setView({ name: "parents" })}
         onChangePassword={changeAdminPassword}
         toast={showToast}
       />
@@ -359,6 +400,15 @@ export default function App() {
         circles={forAdmin ? circles : [circleById(session.circleId)]}
         date={date}
         onBack={() => setView(forAdmin ? { name: "admin" } : { name: "students", circleId: session.circleId })}
+      />
+    );
+  } else if (session.role === "admin" && session.isSuper && view.name === "parents") {
+    screen = (
+      <ParentAccessScreen
+        circles={circles}
+        onSetParentCode={setStudentParentCode}
+        onBack={() => setView({ name: "admin" })}
+        toast={showToast}
       />
     );
   } else if (session.role === "admin" && view.name === "manage") {
@@ -407,7 +457,9 @@ export default function App() {
     ? ""
     : session.role === "admin"
       ? (session.name || "لوحة المشرف")
-      : circleById(session.circleId)?.name || "";
+      : session.role === "parent"
+        ? `ولي أمر · ${session.name}`
+        : circleById(session.circleId)?.name || "";
 
   return (
     <>

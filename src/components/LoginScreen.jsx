@@ -5,7 +5,7 @@ import { ORG } from "../data.js";
 import { hasSupabase } from "../lib/supabase.js";
 
 export default function LoginScreen({ onLogin }) {
-  const [mode, setMode] = useState("sheikh"); // 'sheikh' | 'admin'
+  const [mode, setMode] = useState("sheikh"); // 'sheikh' | 'admin' | 'parent'
   const [secret, setSecret] = useState("");
   const [error, setError] = useState("");
   const [show, setShow] = useState(false);
@@ -14,9 +14,11 @@ export default function LoginScreen({ onLogin }) {
 
   const [busy, setBusy] = useState(false);
 
+  const emptyMsg = { admin: "أدخل كلمة مرور المشرف", parent: "أدخل رمز ولي الأمر", sheikh: "أدخل رمز الحلقة" };
+
   const submit = async (e) => {
     e.preventDefault();
-    if (!secret.trim()) return setError(mode === "admin" ? "أدخل كلمة مرور المشرف" : "أدخل رمز الحلقة");
+    if (!secret.trim()) return setError(emptyMsg[mode]);
     setBusy(true);
     try {
       const res = await onLogin(mode, secret);
@@ -40,6 +42,10 @@ export default function LoginScreen({ onLogin }) {
             onClick={() => switchMode("sheikh")} aria-selected={mode === "sheikh"}>
             <Icon name="user" size={16} /> معلّم
           </button>
+          <button className={"login-tab" + (mode === "parent" ? " active" : "")}
+            onClick={() => switchMode("parent")} aria-selected={mode === "parent"}>
+            <Icon name="users" size={16} /> ولي أمر
+          </button>
           <button className={"login-tab" + (mode === "admin" ? " active" : "")}
             onClick={() => switchMode("admin")} aria-selected={mode === "admin"}>
             <Icon name="shield" size={16} /> مشرف
@@ -48,17 +54,17 @@ export default function LoginScreen({ onLogin }) {
 
         <form className="login-form" onSubmit={submit}>
           <label className="login-label">
-            {mode === "admin" ? "كلمة مرور المشرف" : "رمز الحلقة"}
+            {mode === "admin" ? "كلمة مرور المشرف" : mode === "parent" ? "رمز ولي الأمر" : "رمز الحلقة"}
           </label>
           <div className={"login-field" + (error ? " err" : "")}>
             <input
               type={mode === "admin" && !show ? "password" : "text"}
               value={secret}
               onChange={(e) => { setSecret(e.target.value); setError(""); }}
-              placeholder={mode === "admin" ? "••••••••" : "مثال: NAFI-4821"}
+              placeholder={mode === "admin" ? "••••••••" : mode === "parent" ? "مثال: WALI-4821" : "مثال: NAFI-4821"}
               autoComplete="off"
               autoFocus
-              dir={mode === "admin" ? "ltr" : "ltr"}
+              dir="ltr"
               style={{ textAlign: "center", letterSpacing: mode === "admin" ? "2px" : "1px" }}
             />
             {mode === "admin" && (
@@ -70,7 +76,7 @@ export default function LoginScreen({ onLogin }) {
           {error && <div className="login-error"><Icon name="alert-triangle" size={14} /> {error}</div>}
 
           <button type="submit" className="login-btn" disabled={busy}>
-            {busy ? "جارٍ الدخول…" : (mode === "admin" ? "دخول لوحة المشرف" : "دخول الحلقة")}
+            {busy ? "جارٍ الدخول…" : (mode === "admin" ? "دخول لوحة المشرف" : mode === "parent" ? "دخول ولي الأمر" : "دخول الحلقة")}
           </button>
         </form>
 
@@ -79,11 +85,13 @@ export default function LoginScreen({ onLogin }) {
             ? (hasSupabase
                 ? <>أدخل كلمة مرور المشرف الخاصة بك</>
                 : <>للتجربة، كلمة المرور: <code>admin1234</code></>)
-            : <>احصل على رمز حلقتك من المشرف</>}
+            : mode === "parent"
+              ? <>احصل على رمز المتابعة الخاص بابنك من المشرف</>
+              : <>احصل على رمز حلقتك من المشرف</>}
         </div>
       </div>
 
-      <p className="login-foot"><Icon name="lock" size={13} /> الوصول مُقيَّد — كل معلّم يرى طلاب حلقته فقط</p>
+      <p className="login-foot"><Icon name="lock" size={13} /> الوصول مُقيَّد — ولي الأمر يتابع تقييم ابنه فقط</p>
     </div>
   );
 }
