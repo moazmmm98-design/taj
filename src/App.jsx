@@ -11,6 +11,7 @@ import { ADMIN_PASSWORD, SCORE_KEYS, genCode, arNum } from "./data.js";
 import {
   loadCircles, saveCircle, saveCircleInfo, removeCircle, saveStudents, saveStudentName,
   removeStudent, saveAccessCode, saveEvaluation, getAdminPasswordHash, setAdminPasswordHash,
+  listAdmins, findAdminByPassword, getAdminById, createAdmin, updateAdmin, deleteAdmin,
 } from "./api/repo.js";
 import { sha256Hex } from "./lib/hash.js";
 
@@ -18,6 +19,7 @@ const uid = () =>
   (window.crypto?.randomUUID?.() || String(Date.now()) + Math.random().toString(36).slice(2));
 
 const ADMIN_PW = import.meta.env.VITE_ADMIN_PASSWORD || ADMIN_PASSWORD;
+const SUPER_ADMIN_NAME = "المشرف العام";
 const evalTotal = (scores) => SCORE_KEYS.reduce((a, k) => a + (Number(scores?.[k]) || 0), 0);
 
 // حفظ الجلسة محلياً كي لا يخرج المستخدم عند تحديث الصفحة
@@ -55,12 +57,29 @@ export default function App() {
   const [toast, setToast] = useState({ msg: "", ok: true, visible: false });
   const [loading, setLoading] = useState(true);
   const [adminHash, setAdminHash] = useState(undefined); // undefined=لم تُحمّل · null=لا توجد · نص=تجزئة
+  const [admins, setAdmins] = useState([]); // قائمة المشرفين (للمشرف العام)
   const toastTimer = useRef(null);
 
   // جلب كلمة مرور المشرف المخزّنة (إن وُجدت)
   useEffect(() => {
     getAdminPasswordHash().then((h) => setAdminHash(h || null)).catch((e) => { console.error(e); setAdminHash(null); });
   }, []);
+
+  // إن كانت جلسة مشرف عادي محفوظة لحساب حُذف، أخرجه عند إعادة التحميل
+  useEffect(() => {
+    if (initialSession?.role === "admin" && !initialSession.isSuper && initialSession.adminId) {
+      getAdminById(initialSession.adminId)
+        .then((a) => { if (!a) { saveSession(null); setSession(null); setView({ name: "students" }); } })
+        .catch((e) => console.error(e));
+    }
+  }, []);
+
+  // تحميل قائمة المشرفين للمشرف العام
+  useEffect(() => {
+    if (session?.role === "admin" && session.isSuper) {
+      listAdmins().then(setAdmins).catch((e) => console.error(e));
+    }
+  }, [session]);
 
   // تحميل البيانات (من Supabase إن ضُبطت المفاتيح، وإلا بيانات وهمية)
   useEffect(() => {
@@ -124,12 +143,24 @@ export default function App() {
   // ---- المصادقة (رمز الحلقة للمعلّم، كلمة مرور للمشرف) ----
   const login = async (mode, secret) => {
     if (mode === "admin") {
+      // المشرف العام (كلمة مرور البيئة/التطبيق)
       if (await checkAdminPassword(secret)) {
-        const s = { role: "admin" };
+        const s = { role: "admin", isSuper: true, name: SUPER_ADMIN_NAME };
         setSession(s); saveSession(s);
         setView({ name: "admin" });
         return { ok: true };
       }
+      // مشرف عادي: طابِق كلمة مروره مع جدول المشرفين
+      try {
+        const admin = await findAdminByPassword(await sha256Hex(secret));
+        if (admin) {
+          const s = { role: "admin", isSuper: false, adminId: admin.id, name: admin.name };
+          setSession(s); saveSession(s);
+          setView({ name: "admin" });
+          showToast(`أهلاً ${admin.name}`);
+          return { ok: true };
+        }
+      } catch (e) { console.error(e); }
       return { ok: false, error: "كلمة مرور المشرف غير صحيحة" };
     }
     const code = secret.trim().toLowerCase();
@@ -158,6 +189,55 @@ export default function App() {
     return { ok: true };
   };
 
+  // ---- إدارة المشرفين (المشرف العام فقط) ----
+  const createAdminAccount = async (name, password) => {
+    const nm = (name || "").trim();
+    if (!nm) return { ok: false, error: "أدخل اسم المشرف" };
+    if (!password || password.length < 4) return { ok: false, error: "كلمة المرور قصيرة (٤ أحرف على الأقل)" };
+    if (await checkAdminPassword(password)) return { ok: false, error: "كلمة المرور محجوزة للمشرف العام — اختر غيرها" };
+    try {
+      await createAdmin(nm, await sha256Hex(password));
+      setAdmins(await listAdmins());
+      showToast(`أُضيف المشرف ${nm}`);
+      return { ok: true };
+    } catch (e) {
+      console.error(e);
+      if (e.code === "23505") return { ok: false, error: "كلمة المرور مستخدمة من مشرف آخر — اختر غيرها" };
+      return { ok: false, error: "تعذّر إنشاء المشرف — تحقّق من الاتصال" };
+    }
+  };
+  const updateAdminAccount = async (id, { name, password }) => {
+    const patch = {};
+    if (name !== undefined) {
+      const nm = name.trim();
+      if (!nm) return { ok: false, error: "اسم المشرف مطلوب" };
+      patch.name = nm;
+    }
+    if (password) {
+      if (password.length < 4) return { ok: false, error: "كلمة المرور قصيرة (٤ أحرف على الأقل)" };
+      if (await checkAdminPassword(password)) return { ok: false, error: "كلمة المرور محجوزة للمشرف العام — اختر غيرها" };
+      patch.passwordHash = await sha256Hex(password);
+    }
+    if (!Object.keys(patch).length) return { ok: true };
+    try {
+      await updateAdmin(id, patch);
+      setAdmins(await listAdmins());
+      showToast("تم تحديث بيانات المشرف");
+      return { ok: true };
+    } catch (e) {
+      console.error(e);
+      if (e.code === "23505") return { ok: false, error: "كلمة المرور مستخدمة من مشرف آخر — اختر غيرها" };
+      return { ok: false, error: "تعذّر تحديث المشرف — تحقّق من الاتصال" };
+    }
+  };
+  const deleteAdminAccount = async (id) => {
+    try {
+      await deleteAdmin(id);
+      setAdmins((prev) => prev.filter((a) => a.id !== id));
+      showToast("حُذف المشرف");
+    } catch (e) { console.error(e); showToast("تعذّر حذف المشرف", false); }
+  };
+
   // ---- تعديل غير قابل للتغيير المباشر ----
   const patchStudent = (circleId, idx, patch) => {
     setCircles((prev) => prev.map((c) => c.id !== circleId ? c : {
@@ -180,6 +260,7 @@ export default function App() {
   };
   const updateCircle = (id, patch) => {
     patchCircle(id, patch);
+    showToast("تم تحديث بيانات الحلقة");
     persist(() => saveCircleInfo(id, patch));
   };
   const deleteCircle = (id) => {
@@ -257,6 +338,11 @@ export default function App() {
       <AdminDashboard
         circles={circles}
         date={date}
+        isSuper={session.isSuper}
+        admins={admins}
+        onCreateAdmin={createAdminAccount}
+        onUpdateAdmin={updateAdminAccount}
+        onDeleteAdmin={deleteAdminAccount}
         onOpenCircle={(id) => setView({ name: "students", circleId: id, from: "admin" })}
         onSetCode={(id, code) => { patchCircle(id, { accessCode: code }); persist(() => saveAccessCode(id, code)); }}
         onManage={() => setView({ name: "manage" })}
@@ -320,7 +406,7 @@ export default function App() {
   const identity = !session
     ? ""
     : session.role === "admin"
-      ? "لوحة المشرف"
+      ? (session.name || "لوحة المشرف")
       : circleById(session.circleId)?.name || "";
 
   return (

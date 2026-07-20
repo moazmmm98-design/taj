@@ -560,16 +560,7 @@ input, textarea { font-family: inherit; }
 .mc-ico { font-size: 26px; }
 .mc-name { font-weight: 700; font-size: 15px; }
 .mc-teacher { font-size: 12px; color: var(--ink-2); margin-top: 1px; }
-.mc-edit { min-width: 0; flex: 1; }
-.mc-name-input, .mc-teacher-input { border: 1px solid transparent; background: none; border-radius: 8px;
-  font-family: inherit; color: var(--ink); transition: .14s var(--ease); max-width: 100%; }
-.mc-name-input { font-weight: 700; font-size: 15px; padding: 3px 7px; margin-right: -7px; }
-.mc-teacher-row { display: flex; align-items: center; gap: 5px; margin-top: 1px; flex-wrap: wrap; }
-.mc-teacher-input { font-size: 12px; color: var(--ink-2); padding: 3px 7px; }
-.mc-name-input:hover, .mc-teacher-input:hover { background: var(--surface-2); }
-.mc-name-input:focus, .mc-teacher-input:focus { outline: none; border-color: var(--primary);
-  background: var(--surface); box-shadow: 0 0 0 3px var(--primary-soft); }
-.mc-count { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.mc-actions { display: flex; gap: 6px; flex: 0 0 auto; }
 .del-circle { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; width: 38px; height: 38px;
   font-size: 16px; flex: 0 0 auto; transition: .14s var(--ease); }
 .del-circle:hover { border-color: var(--q1); background: color-mix(in srgb, var(--q1) 10%, var(--surface)); }

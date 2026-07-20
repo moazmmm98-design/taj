@@ -100,6 +100,75 @@ export async function saveEvaluation(studentId, date, { scores, ranges, notes, t
   if (error) throw error;
 }
 
+// ============ المشرفون (يديرهم المشرف العام) ============
+// المشرف العام = صاحب كلمة مرور البيئة/التطبيق (خارج هذا الجدول).
+// المشرفون هنا يدخلون بكلمة مرورهم فقط، ويُطابَق تجزئتها للتعرّف عليهم.
+let demoAdmins = []; // للوضع التجريبي فقط (بدون خادم) — يُعاد ضبطه عند إعادة التحميل
+
+export async function listAdmins() {
+  if (!hasSupabase) return demoAdmins.map(({ id, name, created_at }) => ({ id, name, created_at }));
+  const { data, error } = await supabase
+    .from("admins").select("id,name,created_at").order("created_at", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+export async function findAdminByPassword(hash) {
+  if (!hasSupabase) {
+    const a = demoAdmins.find((x) => x.password_hash === hash);
+    return a ? { id: a.id, name: a.name } : null;
+  }
+  const { data, error } = await supabase
+    .from("admins").select("id,name").eq("password_hash", hash).maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+export async function getAdminById(id) {
+  if (!hasSupabase) {
+    const a = demoAdmins.find((x) => x.id === id);
+    return a ? { id: a.id, name: a.name } : null;
+  }
+  const { data, error } = await supabase
+    .from("admins").select("id,name").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+export async function createAdmin(name, passwordHash) {
+  if (!hasSupabase) {
+    if (demoAdmins.some((x) => x.password_hash === passwordHash)) { const e = new Error("duplicate"); e.code = "23505"; throw e; }
+    const admin = { id: (crypto.randomUUID?.() || String(Date.now())), name, password_hash: passwordHash, created_at: new Date().toISOString() };
+    demoAdmins.push(admin);
+    return { id: admin.id, name: admin.name };
+  }
+  const { data, error } = await supabase
+    .from("admins").insert({ name, password_hash: passwordHash }).select("id,name").single();
+  if (error) throw error;
+  return data;
+}
+export async function updateAdmin(id, patch) {
+  // patch: { name?, passwordHash? }
+  const fields = {};
+  if (patch.name !== undefined) fields.name = patch.name;
+  if (patch.passwordHash !== undefined) fields.password_hash = patch.passwordHash;
+  if (!Object.keys(fields).length) return;
+  if (!hasSupabase) {
+    const a = demoAdmins.find((x) => x.id === id);
+    if (!a) return;
+    if (fields.password_hash !== undefined && demoAdmins.some((x) => x.id !== id && x.password_hash === fields.password_hash)) {
+      const e = new Error("duplicate"); e.code = "23505"; throw e;
+    }
+    if (fields.name !== undefined) a.name = fields.name;
+    if (fields.password_hash !== undefined) a.password_hash = fields.password_hash;
+    return;
+  }
+  const { error } = await supabase.from("admins").update(fields).eq("id", id);
+  if (error) throw error;
+}
+export async function deleteAdmin(id) {
+  if (!hasSupabase) { demoAdmins = demoAdmins.filter((x) => x.id !== id); return; }
+  const { error } = await supabase.from("admins").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ============ إعدادات التطبيق (كلمة مرور المشرف) ============
 export async function getAdminPasswordHash() {
   if (!hasSupabase) return null;

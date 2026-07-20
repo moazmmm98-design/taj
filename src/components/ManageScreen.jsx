@@ -51,6 +51,18 @@ function CircleCard({ circle, onUpdateCircle, onDeleteCircle, onAddStudents, onR
   const [name, setName] = useState("");
   const [bulk, setBulk] = useState(false);
   const [bulkText, setBulkText] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [eName, setEName] = useState(circle.name);
+  const [eTeacher, setETeacher] = useState(circle.teacher);
+  const [eError, setEError] = useState("");
+
+  const saveEdit = (e) => {
+    e.preventDefault();
+    if (!eName.trim()) return setEError("اسم الحلقة مطلوب");
+    onUpdateCircle(circle.id, { name: eName.trim(), teacher: eTeacher.trim() || "غير محدد" });
+    setEError(""); setEditing(false);
+  };
+  const cancelEdit = () => { setEName(circle.name); setETeacher(circle.teacher); setEError(""); setEditing(false); };
 
   const addOne = (e) => {
     e.preventDefault();
@@ -71,18 +83,35 @@ function CircleCard({ circle, onUpdateCircle, onDeleteCircle, onAddStudents, onR
   return (
     <section className="panel manage-card">
       <div className="mc-head">
-        <div className="mc-title"><span className="mc-ico"><Icon name={circle.icon} size={22} /></span>
-          <div className="mc-edit">
-            <input className="mc-name-input" value={circle.name}
-              onChange={(e) => onUpdateCircle(circle.id, { name: e.target.value })} aria-label="اسم الحلقة" />
-            <div className="mc-teacher-row">
-              <input className="mc-teacher-input" value={circle.teacher}
-                onChange={(e) => onUpdateCircle(circle.id, { teacher: e.target.value })} aria-label="اسم الشيخ" placeholder="اسم الشيخ" />
-              <span className="mc-count">· {arNum(circle.students.length)} طالب</span>
+        {!editing ? (
+          <>
+            <div className="mc-title"><span className="mc-ico"><Icon name={circle.icon} size={22} /></span>
+              <div style={{ minWidth: 0 }}>
+                <div className="mc-name">{circle.name}</div>
+                <div className="mc-teacher">{circle.teacher} · {arNum(circle.students.length)} طالب</div>
+              </div>
             </div>
-          </div>
-        </div>
-        <button className="del-circle" onClick={removeCircle} title="حذف الحلقة"><Icon name="trash" size={16} /></button>
+            <div className="mc-actions">
+              <button className="del-circle" onClick={() => setEditing(true)} title="تعديل الحلقة والشيخ"
+                style={{ color: "var(--ink-2)" }}><Icon name="settings" size={16} /></button>
+              <button className="del-circle" onClick={removeCircle} title="حذف الحلقة"><Icon name="trash" size={16} /></button>
+            </div>
+          </>
+        ) : (
+          <form className="pw-form" onSubmit={saveEdit} style={{ maxWidth: "none", width: "100%" }}>
+            <label className="fg"><span>اسم الحلقة *</span>
+              <input value={eName} onChange={(e) => setEName(e.target.value)} autoFocus aria-label="اسم الحلقة" />
+            </label>
+            <label className="fg"><span>اسم الشيخ</span>
+              <input value={eTeacher} onChange={(e) => setETeacher(e.target.value)} placeholder="اسم الشيخ" aria-label="اسم الشيخ" />
+            </label>
+            {eError && <div className="login-error"><Icon name="alert-triangle" size={14} /> {eError}</div>}
+            <div className="pw-actions">
+              <button type="submit" className="mini-btn primary">حفظ التعديلات</button>
+              <button type="button" className="mini-btn" onClick={cancelEdit}>إلغاء</button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* add students */}
