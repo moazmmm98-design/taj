@@ -33,6 +33,23 @@ const viewForSession = (s) =>
     : s.role === "parent" ? { name: "reports" }
     : { name: "students", circleId: s.circleId };
 
+// حفظ الشاشة الحالية كي يبقى المستخدم في مكانه عند تحديث الصفحة
+const VIEW_KEY = "taj_view";
+const readView = () => { try { return JSON.parse(localStorage.getItem(VIEW_KEY)) || null; } catch { return null; } };
+const saveView = (v) => { try { v ? localStorage.setItem(VIEW_KEY, JSON.stringify(v)) : localStorage.removeItem(VIEW_KEY); } catch { /* ignore */ } };
+// استرجاع شاشة محفوظة فقط إن كانت متوافقة مع دور الجلسة (وإلا الشاشة الافتراضية)
+const restoreView = (s) => {
+  const v = readView();
+  if (!s || !v) return viewForSession(s);
+  if (s.role === "admin") {
+    const allowed = s.isSuper ? ["admin", "manage", "reports", "parents"] : ["admin", "manage", "reports"];
+    return allowed.includes(v.name) ? v : { name: "admin" };
+  }
+  if (s.role === "parent") return { name: "reports" };
+  // معلّم: نرجعه لقائمة طلاب حلقته (لا لشاشة تقييم عميقة قد تكون بيانتها تغيّرت)
+  return { name: "students", circleId: s.circleId };
+};
+
 function Splash() {
   return (
     <div className="page">
@@ -55,7 +72,7 @@ export default function App() {
   const initialSession = readSession();
   const [circles, setCircles] = useState([]);
   const [session, setSession] = useState(initialSession); // null | {role:'sheikh', circleId} | {role:'admin'}
-  const [view, setView] = useState(viewForSession(initialSession));
+  const [view, setView] = useState(restoreView(initialSession));
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [theme, setTheme] = useState(null);
   const [toast, setToast] = useState({ msg: "", ok: true, visible: false });
@@ -108,6 +125,9 @@ export default function App() {
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, []);
+
+  // حفظ الشاشة الحالية عند كل تغيير (طالما المستخدم مسجّل الدخول)
+  useEffect(() => { if (session) saveView(view); }, [view, session]);
 
   // حفظ في الخلفية مع تنبيه عند الفشل
   const persist = (fn) => Promise.resolve().then(fn).catch((e) => {
@@ -202,7 +222,7 @@ export default function App() {
     return { ok: false, error: "رمز الحلقة غير صحيح — تحقّق من الرمز أو راجع المشرف" };
   };
 
-  const logout = () => { setSession(null); saveSession(null); setView({ name: "students" }); };
+  const logout = () => { setSession(null); saveSession(null); saveView(null); setView({ name: "students" }); };
 
   // تغيير كلمة مرور المشرف
   const changeAdminPassword = async (current, next) => {
