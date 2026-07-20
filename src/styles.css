@@ -357,8 +357,7 @@ input, textarea { font-family: inherit; }
 
 /* ===================== admin dashboard ===================== */
 .admin-grid { display: grid; gap: 14px; margin-top: 16px; }
-.admin-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (max-width: 780px) { .admin-grid.two { grid-template-columns: 1fr; } }
+.admin-grid.two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
 
 /* KPIs */
 .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 20px; }
@@ -550,8 +549,8 @@ input, textarea { font-family: inherit; }
 .icon-opt.on { border-color: var(--primary); background: var(--primary-soft); transform: translateY(-1px); }
 @media (max-width: 520px) { .form-grid { grid-template-columns: 1fr; } }
 
-.manage-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; align-items: start; }
-@media (max-width: 780px) { .manage-list { grid-template-columns: 1fr; } }
+.manage-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 14px; margin-top: 16px; align-items: start; }
 
 .manage-card { padding: 15px 16px; }
 .mc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 13px;
@@ -691,6 +690,15 @@ input, textarea { font-family: inherit; }
 .pw-actions { display: flex; gap: 8px; margin-top: 2px; }
 
 /* ===================== very small phones ===================== */
+@media (max-width: 480px) {
+  .panel, .manage-card { padding: 14px 13px; }
+  .add-student { gap: 6px; }
+  .add-student input { min-width: 100%; }
+  .mini-btn { padding: 9px 11px; }
+  .admin-top-actions { width: 100%; }
+  .admin-top-actions .manage-btn { flex: 1; justify-content: center; }
+}
+
 @media (max-width: 380px) {
   .seg { gap: 5px; }
   .seg-btn { padding: 9px 2px 7px; }

@@ -3,7 +3,9 @@
     "allow": [
       "Skill(artifact-design)",
       "Artifact",
-      "PowerShell(Set-Location \"G:\\\\Summer 2023\\\\Project-Masar\\\\Projects\\\\3_taj\"; Start-Sleep -Seconds 3; try { $r = Invoke-WebRequest -Uri \"http://localhost:5173\" -UseBasicParsing -TimeoutSec 8; \"HTTP \" + $r.StatusCode; if\\($r.Content -match 'id=\"root\"'\\){\"root div present ✓\"} } catch { \"dev server not reachable: \" + $_.Exception.Message })"
+      "PowerShell(Set-Location \"G:\\\\Summer 2023\\\\Project-Masar\\\\Projects\\\\3_taj\"; Start-Sleep -Seconds 3; try { $r = Invoke-WebRequest -Uri \"http://localhost:5173\" -UseBasicParsing -TimeoutSec 8; \"HTTP \" + $r.StatusCode; if\\($r.Content -match 'id=\"root\"'\\){\"root div present ✓\"} } catch { \"dev server not reachable: \" + $_.Exception.Message })",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174)"
     ]
   }
 }
