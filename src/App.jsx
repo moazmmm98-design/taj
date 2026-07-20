@@ -9,7 +9,7 @@ import ReportsScreen from "./components/ReportsScreen.jsx";
 import Toast from "./components/Toast.jsx";
 import { ADMIN_PASSWORD, SCORE_KEYS, genCode, arNum } from "./data.js";
 import {
-  loadCircles, saveCircle, removeCircle, saveStudents, saveStudentName,
+  loadCircles, saveCircle, saveCircleInfo, removeCircle, saveStudents, saveStudentName,
   removeStudent, saveAccessCode, saveEvaluation, getAdminPasswordHash, setAdminPasswordHash,
 } from "./api/repo.js";
 import { sha256Hex } from "./lib/hash.js";
@@ -178,6 +178,10 @@ export default function App() {
     showToast(`أُضيفت ${name}`);
     persist(() => saveCircle(circle));
   };
+  const updateCircle = (id, patch) => {
+    patchCircle(id, patch);
+    persist(() => saveCircleInfo(id, patch));
+  };
   const deleteCircle = (id) => {
     setCircles((prev) => prev.filter((c) => c.id !== id));
     showToast("حُذفت الحلقة");
@@ -277,6 +281,7 @@ export default function App() {
         circles={circles}
         onBack={() => setView({ name: "admin" })}
         onAddCircle={addCircle}
+        onUpdateCircle={updateCircle}
         onDeleteCircle={deleteCircle}
         onAddStudents={addStudents}
         onRenameStudent={renameStudent}

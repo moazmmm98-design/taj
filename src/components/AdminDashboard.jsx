@@ -4,7 +4,7 @@ import AccessManager from "./AccessManager.jsx";
 import AdminPassword from "./AdminPassword.jsx";
 import {
   arNum, initials, totalOf, gradeOf, MAX_TOTAL,
-  overallStats, circleStats, gradeDistribution, leaderboard, attentionList, makeWeekTrend,
+  overallStats, circleStats, gradeDistribution, leaderboard, attentionList, weekTrend,
 } from "../data.js";
 
 /* ---------- KPI tile ---------- */
@@ -139,7 +139,7 @@ export default function AdminDashboard({ circles, date, onOpenCircle, onSetCode,
   const dist = useMemo(() => gradeDistribution(circles), [circles]);
   const top = useMemo(() => leaderboard(circles, 5), [circles]);
   const attention = useMemo(() => attentionList(circles, 5), [circles]);
-  const trend = useMemo(() => makeWeekTrend(), []);
+  const trend = useMemo(() => weekTrend(circles), [circles]);
   const grade = gradeOf(overall.avg);
 
   const dateLabel = date

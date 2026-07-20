@@ -75,12 +75,6 @@ export const GRADES = [
 
 export const SURAHS = ["الفاتحة","البقرة","آل عمران","النساء","المائدة","الأنعام","الأعراف","الأنفال","التوبة","يونس","هود","يوسف","الرعد","إبراهيم","الحجر","النحل","الإسراء","الكهف","مريم","طه","الأنبياء","الحج","المؤمنون","النور","الفرقان","الشعراء","النمل","القصص","العنكبوت","الروم","لقمان","السجدة","الأحزاب","سبأ","فاطر","يس","الصافات","ص","الزمر","غافر","فصلت","الشورى","الزخرف","الدخان","الجاثية","الأحقاف","محمد","الفتح","الحجرات","ق","الذاريات","الطور","النجم","القمر","الرحمن","الواقعة","الحديد","المجادلة","الحشر","الممتحنة","الصف","الجمعة","المنافقون","التغابن","الطلاق","التحريم","الملك","القلم","الحاقة","المعارج","نوح","الجن","المزمل","المدثر","القيامة","الإنسان","المرسلات","النبأ","النازعات","عبس","التكوير","الانفطار","المطففين","الانشقاق","البروج","الطارق","الأعلى","الغاشية","الفجر","البلد","الشمس","الليل","الضحى","الشرح","التين","العلق","القدر","البينة","الزلزلة","العاديات","القارعة","التكاثر","العصر","الهمزة","الفيل","قريش","الماعون","الكوثر","الكافرون","النصر","المسد","الإخلاص","الفلق","الناس"];
 
-// ============ مولّد بيانات وهمية ============
-const firstNames = ["عبدالله","محمد","يوسف","إبراهيم","عبدالرحمن","خالد","سلمان","أنس","معاذ","زيد","حمزة","بلال","عمر","صهيب","طلحة","سعد","أويس","براء","تميم","راكان","فيصل","ناصر","وليد","ماجد","يحيى"];
-const lastNames = ["الحربي","القحطاني","الشهري","الزهراني","العتيبي","الغامدي","المطيري","الدوسري","السبيعي","العنزي"];
-const rnd = (a) => a[Math.floor(Math.random() * a.length)];
-const ri = (n) => Math.floor(Math.random() * n);
-
 // ---- تواريخ (ISO yyyy-mm-dd) ----
 export const TODAY = new Date().toISOString().slice(0, 10);
 export const addDays = (dateStr, n) => {
@@ -88,70 +82,6 @@ export const addDays = (dateStr, n) => {
   d.setDate(d.getDate() + n);
   return d.toISOString().slice(0, 10);
 };
-
-function randomRange() {
-  const from = 1 + ri(20);
-  return { from: String(from), to: String(from + 1 + ri(15)) };
-}
-function randomRanges() {
-  const r = {};
-  RANGE_KEYS.forEach((k) => (r[k] = randomRange()));
-  return r;
-}
-// درجة حقل بناءً على قدرة الطالب (0..1) لتماسك التقارير الأسبوعية/الشهرية
-function scoreFromAbility(key, ability) {
-  const meta = META[key];
-  if (meta.type === "number") {
-    const v = Math.round(ability * meta.max + (Math.random() * 4 - 2));
-    return Math.max(0, Math.min(meta.max, v));
-  }
-  const opts = meta.options;
-  let idx = Math.round(ability * (opts.length - 1) + (Math.random() * 1.2 - 0.6));
-  idx = Math.max(0, Math.min(opts.length - 1, idx));
-  return opts[idx];
-}
-function scoresFromAbility(ability) {
-  const s = {};
-  SCORE_KEYS.forEach((k) => (s[k] = scoreFromAbility(k, ability)));
-  return s;
-}
-const totalFromScores = (scores) => SCORE_KEYS.reduce((a, k) => a + (scores[k] || 0), 0);
-
-// سجل تقييم يومي وهمي للأيام الماضية (باستثناء اليوم)
-function makeHistory(ability, days = 34) {
-  const arr = [];
-  for (let i = days; i >= 1; i--) {
-    if (Math.random() < 0.12) continue; // غياب ~12%
-    const date = addDays(TODAY, -i);
-    const dayAbility = Math.max(0.4, Math.min(1, ability + (Math.random() * 0.2 - 0.1)));
-    const scores = scoresFromAbility(dayAbility);
-    arr.push({ date, scores, ranges: randomRanges(), total: totalFromScores(scores) });
-  }
-  return arr;
-}
-
-function makeStudents(n, doneRatio) {
-  const arr = [];
-  for (let i = 0; i < n; i++) {
-    const name = rnd(firstNames) + " " + rnd(lastNames);
-    const done = Math.random() < doneRatio;
-    const ability = 0.5 + Math.random() * 0.5; // 0.5..1
-    const yesterday = { scores: scoresFromAbility(ability), ranges: randomRanges() };
-    arr.push({
-      id: `${i}`,
-      name,
-      juz: 5 + ri(25),
-      ability,
-      scores: done ? scoresFromAbility(ability) : {},
-      ranges: done ? randomRanges() : {},
-      yesterday,
-      history: makeHistory(ability),
-      notes: "",
-      done,
-    });
-  }
-  return arr;
-}
 
 // هوية المخيم
 export const ORG = {
@@ -166,16 +96,6 @@ export const ADMIN_PASSWORD = "admin1234";
 // توليد رمز دخول للحلقة: بادئة + 4 أرقام (مثال: NAFI-4821)
 export const genCode = (prefix = "HALQA") =>
   `${prefix}-${1000 + Math.floor(Math.random() * 9000)}`;
-
-export function makeCircles() {
-  const base = [
-    { id: "0", name: "حلقة الإمام نافع",    icon: "book-open", level: "حفظ متقدم", room: "القاعة ١",     teacher: "الشيخ عبدالرحمن الحربي", codePrefix: "NAFI",  students: makeStudents(22, 0.8) },
-    { id: "1", name: "حلقة الإمام عاصم",    icon: "book",      level: "متوسط",     room: "القاعة ٣",     teacher: "الشيخ سلمان الغامدي",   codePrefix: "ASIM",  students: makeStudents(18, 0.35) },
-    { id: "2", name: "حلقة الإمام ورش",     icon: "library",   level: "مبتدئ",     room: "الخيمة الكبرى", teacher: "الشيخ ماجد القحطاني",   codePrefix: "WARSH", students: makeStudents(25, 0.55) },
-    { id: "3", name: "حلقة الإمام الكسائي", icon: "bookmark",  level: "متوسط",     room: "القاعة ٢",     teacher: "الشيخ فيصل الدوسري",    codePrefix: "KISAI", students: makeStudents(20, 0.9) },
-  ];
-  return base.map((c) => ({ ...c, accessCode: genCode(c.codePrefix) }));
-}
 
 // ============ أدوات مساعدة ============
 export const arNum = (n) => Number(n).toLocaleString("ar-EG");
@@ -236,12 +156,6 @@ export const leaderboard = (circles, n = 5) =>
 export const attentionList = (circles, n = 5) =>
   rankedStudents(circles).sort((a, b) => a.total - b.total).slice(0, n);
 
-// اتجاه المتوسط العام خلال ٧ أيام (بيانات وهمية)
-export const makeWeekTrend = () => {
-  const days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
-  return days.map((day, i) => ({ day, avg: 74 + Math.round(Math.sin(i * 0.8) * 5) + Math.floor(Math.random() * 7) }));
-};
-
 // ============ التقارير (يومي / أسبوعي / شهري) ============
 export const PERIODS = {
   daily:   { key: "daily",   label: "يومي",   days: 1 },
@@ -266,6 +180,20 @@ export const studentRecords = (student, from, to) => {
     : [];
   const merged = [...hist.filter((r) => r.date !== TODAY), ...live];
   return merged.sort((a, b) => (a.date < b.date ? -1 : 1));
+};
+
+// اتجاه المتوسط العام خلال ٧ أيام (من التقييمات الفعلية)
+export const weekTrend = (circles) => {
+  const students = circles.flatMap((c) => c.students);
+  const out = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = addDays(TODAY, -i);
+    let sum = 0, n = 0;
+    students.forEach((s) => studentRecords(s, d, d).forEach((r) => { sum += r.total; n++; }));
+    const day = new Date(d + "T00:00:00").toLocaleDateString("ar-EG", { weekday: "long" });
+    out.push({ day, avg: n ? Math.round(sum / n) : 0 });
+  }
+  return out;
 };
 
 // إحصاء مدى من سجلات

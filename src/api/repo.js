@@ -1,12 +1,12 @@
 // طبقة الوصول للبيانات — Supabase عند ضبط المفاتيح، وإلا بيانات وهمية في الذاكرة.
 import { supabase, hasSupabase } from "../lib/supabase.js";
-import { makeCircles, TODAY, addDays } from "../data.js";
+import { TODAY, addDays } from "../data.js";
 
 const HISTORY_DAYS = 34; // كم يوماً ماضياً نحمّله للتقارير
 
 // ============ تحميل الحلقات + تقييمات الفترة الأخيرة ============
 export async function loadCircles() {
-  if (!hasSupabase) return makeCircles(); // وضع تجريبي
+  if (!hasSupabase) return []; // بدون خادم: تبدأ فارغة (تُنشأ الحلقات من إدارة المشرف)
 
   const { data: circles, error } = await supabase
     .from("circles")
@@ -54,6 +54,15 @@ export async function saveCircle(c) {
   if (!hasSupabase) return;
   const { error } = await supabase.from("circles")
     .insert({ id: c.id, name: c.name, teacher: c.teacher, icon: c.icon, access_code: c.accessCode });
+  if (error) throw error;
+}
+export async function saveCircleInfo(id, patch) {
+  if (!hasSupabase) return;
+  const fields = {};
+  if (patch.name !== undefined) fields.name = patch.name;
+  if (patch.teacher !== undefined) fields.teacher = patch.teacher;
+  if (!Object.keys(fields).length) return;
+  const { error } = await supabase.from("circles").update(fields).eq("id", id);
   if (error) throw error;
 }
 export async function removeCircle(id) {
