@@ -23,6 +23,10 @@ const ADMIN_PW = import.meta.env.VITE_ADMIN_PASSWORD || ADMIN_PASSWORD;
 const SUPER_ADMIN_NAME = "المشرف العام";
 const evalTotal = (scores) => SCORE_KEYS.reduce((a, k) => a + (Number(scores?.[k]) || 0), 0);
 
+// حفظ السمة محلياً — الافتراضي فاتح
+const THEME_KEY = "taj_theme";
+const readTheme = () => { try { return localStorage.getItem(THEME_KEY) || "light"; } catch { return "light"; } };
+
 // حفظ الجلسة محلياً كي لا يخرج المستخدم عند تحديث الصفحة
 const SESSION_KEY = "taj_session";
 const readSession = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)) || null; } catch { return null; } };
@@ -37,17 +41,33 @@ const viewForSession = (s) =>
 const VIEW_KEY = "taj_view";
 const readView = () => { try { return JSON.parse(localStorage.getItem(VIEW_KEY)) || null; } catch { return null; } };
 const saveView = (v) => { try { v ? localStorage.setItem(VIEW_KEY, JSON.stringify(v)) : localStorage.removeItem(VIEW_KEY); } catch { /* ignore */ } };
-// استرجاع شاشة محفوظة فقط إن كانت متوافقة مع دور الجلسة (وإلا الشاشة الافتراضية)
+// استرجاع الشاشة المحفوظة إن كانت متوافقة مع دور الجلسة (وإلا الشاشة الافتراضية)
+// ملاحظة: صحّة المراجع (وجود الحلقة/الطالب) تُتحقّق بعد تحميل البيانات في normalizeView
 const restoreView = (s) => {
   const v = readView();
   if (!s || !v) return viewForSession(s);
+  if (s.role === "parent") return { name: "reports" };
   if (s.role === "admin") {
-    const allowed = s.isSuper ? ["admin", "manage", "reports", "parents"] : ["admin", "manage", "reports"];
+    const base = ["admin", "manage", "reports", "students", "eval"];
+    const allowed = s.isSuper ? [...base, "parents"] : base;
     return allowed.includes(v.name) ? v : { name: "admin" };
   }
-  if (s.role === "parent") return { name: "reports" };
-  // معلّم: نرجعه لقائمة طلاب حلقته (لا لشاشة تقييم عميقة قد تكون بيانتها تغيّرت)
-  return { name: "students", circleId: s.circleId };
+  // معلّم: يبقى في مكانه (قائمة الطلاب/تقييم/تقارير) لكن ضمن حلقته دائماً
+  const allowed = ["students", "eval", "reports"];
+  if (!allowed.includes(v.name)) return { name: "students", circleId: s.circleId };
+  return { ...v, circleId: s.circleId };
+};
+
+// تصحيح الشاشة المسترجعة بعد تحميل الحلقات: إن كانت تشير لحلقة/طالب لم يعد موجوداً
+const normalizeView = (v, cs, s) => {
+  if (v.name === "eval" || (v.name === "students" && v.circleId)) {
+    const c = cs.find((x) => x.id === v.circleId);
+    if (!c) return viewForSession(s);
+    if (v.name === "eval" && !(v.idx >= 0 && v.idx < c.students.length)) {
+      return { name: "students", circleId: c.id, from: v.from };
+    }
+  }
+  return v;
 };
 
 function Splash() {
@@ -74,7 +94,7 @@ export default function App() {
   const [session, setSession] = useState(initialSession); // null | {role:'sheikh', circleId} | {role:'admin'}
   const [view, setView] = useState(restoreView(initialSession));
   const [date, setDate] = useState(() => TODAY);
-  const [theme, setTheme] = useState(null);
+  const [theme, setTheme] = useState(() => readTheme());
   const [toast, setToast] = useState({ msg: "", ok: true, visible: false });
   const [loading, setLoading] = useState(true);
   const [adminHash, setAdminHash] = useState(undefined); // undefined=لم تُحمّل · null=لا توجد · نص=تجزئة
@@ -113,12 +133,16 @@ export default function App() {
         if (initialSession?.role === "sheikh" && !cs.some((c) => c.id === initialSession.circleId)) {
           saveSession(null); setSession(null); setView({ name: "students" });
         }
-        // إن كانت جلسة ولي أمر لطالب لم يعد موجوداً، أخرجه
-        if (initialSession?.role === "parent") {
+        // إن كانت جلسة ولي أمر لطالب لم يعد موجوداً, أخرجه
+        else if (initialSession?.role === "parent") {
           const c = cs.find((c) => c.id === initialSession.circleId);
           if (!c?.students.some((s) => s.id === initialSession.studentId)) {
             saveSession(null); setSession(null); setView({ name: "students" });
           }
+        }
+        // صحّح الشاشة المسترجعة إن كانت تشير لحلقة/طالب لم يعد موجوداً
+        else if (initialSession) {
+          setView((cur) => normalizeView(cur, cs, initialSession));
         }
       })
       .catch((e) => { console.error(e); if (alive) showToast("تعذّر تحميل البيانات من الخادم", false); })
@@ -136,9 +160,8 @@ export default function App() {
   });
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme) root.setAttribute("data-theme", theme);
-    else root.removeAttribute("data-theme");
+    document.documentElement.setAttribute("data-theme", theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch { /* ignore */ }
   }, [theme]);
 
   // توسيع العرض في شاشات المشرف الواسعة (وعرض مريح لتقرير ولي الأمر)
@@ -156,10 +179,7 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, visible: false })), 1900);
   };
 
-  const toggleTheme = () => {
-    const isDark = theme === "dark" || (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    setTheme(isDark ? "light" : "dark");
-  };
+  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   const circleById = (id) => circles.find((c) => c.id === id);
 
