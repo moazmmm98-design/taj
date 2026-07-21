@@ -178,41 +178,7 @@ export default function AdminDashboard({ circles, date, isSuper, admins, onCreat
         <Kpi icon="target" label="المتوسط العام" value={`${arNum(overall.avg)} / ${arNum(MAX_TOTAL)}`} sub={grade.label} tone={grade.v} />
       </div>
 
-      {/* charts */}
-      <div className="admin-grid two">
-        <section className="panel">
-          <div className="panel-head"><h3>إنجاز التقييم لكل حلقة</h3><span className="panel-note">النسبة المئوية</span></div>
-          <Bars rows={completionRows} />
-        </section>
-        <section className="panel">
-          <div className="panel-head"><h3>متوسط الأداء لكل حلقة</h3><span className="panel-note">من {arNum(MAX_TOTAL)}</span></div>
-          <Bars rows={avgRows} />
-        </section>
-      </div>
-
-      <div className="admin-grid two">
-        <section className="panel">
-          <div className="panel-head"><h3>توزيع التقديرات</h3><span className="panel-note">الطلاب المُقيَّمون</span></div>
-          <Distribution dist={dist} />
-        </section>
-        <section className="panel">
-          <div className="panel-head"><h3>اتجاه المتوسط العام</h3><span className="panel-note">آخر ٧ أيام</span></div>
-          <Trend data={trend} />
-        </section>
-      </div>
-
-      {/* lists */}
-      <div className="admin-grid two">
-        <section className="panel">
-          <div className="panel-head"><h3><Icon name="award" size={17} className="ic-lead" /> الأعلى أداءً</h3></div>
-          <RankList items={top} variant="top" />
-        </section>
-        <section className="panel">
-          <div className="panel-head"><h3><Icon name="alert-triangle" size={17} className="ic-warn" /> يحتاجون متابعة</h3></div>
-          <RankList items={attention} variant="low" />
-        </section>
-      </div>
-
+      
       {/* circles table */}
       <section className="panel">
         <div className="panel-head"><h3>الحلقات والمعلمون</h3><span className="panel-note">اضغط لعرض الطلاب</span></div>
@@ -248,6 +214,42 @@ export default function AdminDashboard({ circles, date, isSuper, admins, onCreat
           </table>
         </div>
       </section>
+
+
+      {/* charts */}
+      <div className="admin-grid two">
+        <section className="panel">
+          <div className="panel-head"><h3>إنجاز التقييم لكل حلقة</h3><span className="panel-note">النسبة المئوية</span></div>
+          <Bars rows={completionRows} />
+        </section>
+        <section className="panel">
+          <div className="panel-head"><h3>متوسط الأداء لكل حلقة</h3><span className="panel-note">من {arNum(MAX_TOTAL)}</span></div>
+          <Bars rows={avgRows} />
+        </section>
+      </div>
+
+      <div className="admin-grid two">
+        <section className="panel">
+          <div className="panel-head"><h3>توزيع التقديرات</h3><span className="panel-note">الطلاب المُقيَّمون</span></div>
+          <Distribution dist={dist} />
+        </section>
+        <section className="panel">
+          <div className="panel-head"><h3>اتجاه المتوسط العام</h3><span className="panel-note">آخر ٧ أيام</span></div>
+          <Trend data={trend} />
+        </section>
+      </div>
+
+      {/* lists */}
+      <div className="admin-grid two">
+        <section className="panel">
+          <div className="panel-head"><h3><Icon name="award" size={17} className="ic-lead" /> الأعلى أداءً</h3></div>
+          <RankList items={top} variant="top" />
+        </section>
+        <section className="panel">
+          <div className="panel-head"><h3><Icon name="alert-triangle" size={17} className="ic-warn" /> يحتاجون متابعة</h3></div>
+          <RankList items={attention} variant="low" />
+        </section>
+      </div>
 
       {/* access codes */}
       <AccessManager circles={circles} onSetCode={onSetCode} toast={toast} />

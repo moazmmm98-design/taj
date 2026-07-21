@@ -168,12 +168,12 @@ function GroupReport({ circle, period, range }) {
                   {isDaily && (
                     <>
                       <td className="amt">
-                        <div>ف١: {rangeText(rec?.ranges?.hifz_p1)}</div>
-                        <div>ف٢: {rangeText(rec?.ranges?.hifz_p2)}</div>
+                        <div>ج١: {rangeText(rec?.ranges?.hifz_p1)}</div>
+                        <div>ج٢: {rangeText(rec?.ranges?.hifz_p2)}</div>
                       </td>
                       <td className="amt">
-                        <div>ف١: {rangeText(rec?.ranges?.rev_p1)}</div>
-                        <div>ف٢: {rangeText(rec?.ranges?.rev_p2)}</div>
+                        <div>ج١: {rangeText(rec?.ranges?.rev_p1)}</div>
+                        <div>ج٢: {rangeText(rec?.ranges?.rev_p2)}</div>
                       </td>
                     </>
                   )}
