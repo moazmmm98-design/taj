@@ -439,6 +439,7 @@ export default function App() {
       <AdminDashboard
         circles={circles}
         date={date}
+        onChangeDate={setDate}
         isSuper={session.isSuper}
         admins={admins}
         onCreateAdmin={createAdminAccount}

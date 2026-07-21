@@ -138,19 +138,19 @@ export const doneCountForDate = (circle, date) =>
 export const qVarByRatio = (r) => QVARS[Math.min(4, Math.max(0, Math.round(r * 4)))];
 
 // ============ إحصاءات لوحة المشرف ============
-export const circleStats = (c) => {
+export const circleStats = (c, date = TODAY) => {
   const total = c.students.length;
-  const done = c.students.filter((s) => s.done);
+  const done = c.students.filter((s) => recordFor(s, date).done);
   const doneN = done.length;
-  const avg = doneN ? Math.round(done.reduce((a, s) => a + totalOf(s), 0) / doneN) : 0;
+  const avg = doneN ? Math.round(done.reduce((a, s) => a + totalForDate(s, date), 0) / doneN) : 0;
   return { total, done: doneN, pending: total - doneN, pct: total ? Math.round((doneN / total) * 100) : 0, avg };
 };
 
-export const overallStats = (circles) => {
+export const overallStats = (circles, date = TODAY) => {
   const students = circles.flatMap((c) => c.students);
-  const done = students.filter((s) => s.done);
+  const done = students.filter((s) => recordFor(s, date).done);
   const doneN = done.length;
-  const avg = doneN ? Math.round(done.reduce((a, s) => a + totalOf(s), 0) / doneN) : 0;
+  const avg = doneN ? Math.round(done.reduce((a, s) => a + totalForDate(s, date), 0) / doneN) : 0;
   return {
     circles: circles.length,
     teachers: new Set(circles.map((c) => c.teacher)).size,
@@ -163,23 +163,25 @@ export const overallStats = (circles) => {
 };
 
 // توزيع التقديرات بين الطلاب المُقيَّمين (مرتّب ممتاز → يحتاج تحسين)
-export const gradeDistribution = (circles) => {
+export const gradeDistribution = (circles, date = TODAY) => {
   const counts = GRADES.map((g) => ({ ...g, count: 0 }));
-  circles.flatMap((c) => c.students).filter((s) => s.done).forEach((s) => {
-    const gi = GRADES.findIndex((g) => totalOf(s) >= g.min);
+  circles.flatMap((c) => c.students).filter((s) => recordFor(s, date).done).forEach((s) => {
+    const t = totalForDate(s, date);
+    const gi = GRADES.findIndex((g) => t >= g.min);
     if (gi >= 0) counts[gi].count++;
   });
   return counts;
 };
 
-const rankedStudents = (circles) =>
-  circles.flatMap((c) => c.students.filter((s) => s.done).map((s) => ({ student: s, circle: c, total: totalOf(s) })));
+const rankedStudents = (circles, date = TODAY) =>
+  circles.flatMap((c) => c.students.filter((s) => recordFor(s, date).done)
+    .map((s) => ({ student: s, circle: c, total: totalForDate(s, date) })));
 
-export const leaderboard = (circles, n = 5) =>
-  rankedStudents(circles).sort((a, b) => b.total - a.total).slice(0, n);
+export const leaderboard = (circles, n = 5, date = TODAY) =>
+  rankedStudents(circles, date).sort((a, b) => b.total - a.total).slice(0, n);
 
-export const attentionList = (circles, n = 5) =>
-  rankedStudents(circles).sort((a, b) => a.total - b.total).slice(0, n);
+export const attentionList = (circles, n = 5, date = TODAY) =>
+  rankedStudents(circles, date).sort((a, b) => a.total - b.total).slice(0, n);
 
 // ============ التقارير (يومي / أسبوعي / شهري) ============
 export const PERIODS = {

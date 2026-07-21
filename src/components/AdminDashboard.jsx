@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import Icon from "./Icon.jsx";
+import DatePicker from "./DatePicker.jsx";
 import AccessManager from "./AccessManager.jsx";
 import AdminPassword from "./AdminPassword.jsx";
 import AdminsManager from "./AdminsManager.jsx";
 import {
-  arNum, initials, totalOf, gradeOf, MAX_TOTAL,
+  arNum, initials, gradeOf, MAX_TOTAL,
   overallStats, circleStats, gradeDistribution, leaderboard, attentionList, weekTrend,
 } from "../data.js";
 
@@ -134,12 +135,12 @@ function statusOf(st) {
 }
 
 /* ============ main ============ */
-export default function AdminDashboard({ circles, date, isSuper, admins, onCreateAdmin, onUpdateAdmin, onDeleteAdmin, onOpenCircle, onSetCode, onManage, onReports, onParents, onChangePassword, toast }) {
-  const overall = useMemo(() => overallStats(circles), [circles]);
-  const perCircle = useMemo(() => circles.map((c) => ({ c, st: circleStats(c) })), [circles]);
-  const dist = useMemo(() => gradeDistribution(circles), [circles]);
-  const top = useMemo(() => leaderboard(circles, 5), [circles]);
-  const attention = useMemo(() => attentionList(circles, 5), [circles]);
+export default function AdminDashboard({ circles, date, onChangeDate, isSuper, admins, onCreateAdmin, onUpdateAdmin, onDeleteAdmin, onOpenCircle, onSetCode, onManage, onReports, onParents, onChangePassword, toast }) {
+  const overall = useMemo(() => overallStats(circles, date), [circles, date]);
+  const perCircle = useMemo(() => circles.map((c) => ({ c, st: circleStats(c, date) })), [circles, date]);
+  const dist = useMemo(() => gradeDistribution(circles, date), [circles, date]);
+  const top = useMemo(() => leaderboard(circles, 5, date), [circles, date]);
+  const attention = useMemo(() => attentionList(circles, 5, date), [circles, date]);
   const trend = useMemo(() => weekTrend(circles), [circles]);
   const grade = gradeOf(overall.avg);
 
@@ -169,11 +170,13 @@ export default function AdminDashboard({ circles, date, isSuper, admins, onCreat
         </div>
       </div>
 
+      {onChangeDate && <DatePicker value={date} onChange={onChangeDate} />}
+
       {/* KPIs */}
       <div className="kpi-row">
         <Kpi icon="users" label="إجمالي الطلاب" value={arNum(overall.total)} tone="--primary" />
         <Kpi icon="library" label="الحلقات" value={arNum(overall.circles)} sub={`${arNum(overall.teachers)} معلمين`} tone="--primary" />
-        <Kpi icon="check-circle" label="تم تقييمهم اليوم" value={`${arNum(overall.done)} / ${arNum(overall.total)}`} sub={`${arNum(overall.pct)}٪ من الطلاب`} tone="--q5" />
+        <Kpi icon="check-circle" label="تم تقييمهم" value={`${arNum(overall.done)} / ${arNum(overall.total)}`} sub={`${arNum(overall.pct)}٪ من الطلاب`} tone="--q5" />
         <Kpi icon="clock" label="بانتظار التقييم" value={arNum(overall.pending)} tone="--gold" />
         <Kpi icon="target" label="المتوسط العام" value={`${arNum(overall.avg)} / ${arNum(MAX_TOTAL)}`} sub={grade.label} tone={grade.v} />
       </div>
