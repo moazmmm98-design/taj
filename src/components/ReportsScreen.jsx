@@ -92,11 +92,11 @@ function StudentReport({ student, circle, period, range }) {
       <h4 className="rep-h4">متوسط البنود</h4>
       <CritBars perCrit={stats.perCrit} />
 
-      <h4 className="rep-h4">التقييم اليومي خلال الفترة</h4>
+      <h4 className="rep-h4">التقييم اليومي خلال الجلسة</h4>
       <table className="rep-table">
         <thead><tr><th>اليوم</th><th>المجموع</th><th>التقدير</th></tr></thead>
         <tbody>
-          {records.length === 0 && <tr><td colSpan={3} className="muted">لا سجلات في هذه الفترة</td></tr>}
+          {records.length === 0 && <tr><td colSpan={3} className="muted">لا سجلات في هذه الجلسة</td></tr>}
           {records.map((r) => (
             <tr key={r.date}><td>{fmtDate(r.date, { weekday: "long", day: "numeric", month: "short" })}</td>
               <td className="num" style={{ fontWeight: 800 }}>{arNum(r.total)}</td>
@@ -110,7 +110,7 @@ function StudentReport({ student, circle, period, range }) {
           <h4 className="rep-h4">سجل المقادير اليومية</h4>
           <div className="rep-table-scroll">
             <table className="rep-table">
-              <thead><tr><th>اليوم</th><th>حفظ (ف١)</th><th>حفظ (ف٢)</th><th>مراجعة (ف١)</th><th>مراجعة (ف٢)</th></tr></thead>
+              <thead><tr><th>اليوم</th><th>حفظ (ج1)</th><th>حفظ (ج2)</th><th>مراجعة (ج1)</th><th>مراجعة (ج2)</th></tr></thead>
               <tbody>
                 {records.map((r) => (
                   <tr key={r.date}>
@@ -279,7 +279,7 @@ export default function ReportsScreen({ role, circles, date, onBack, lockStudent
           <div>
             <div className="eyebrow"><Icon name={isParent ? "users" : "printer"} size={13} className="ic-lead" /> {isParent ? "متابعة ولي الأمر" : "التقارير"}</div>
             <h1 className="h1">{isParent ? "متابعة أداء الطالب" : "التقارير والطباعة"}</h1>
-            <p className="sub">{isParent ? "تابع تقييم ابنك يومياً وأسبوعياً وشهرياً — ويمكنك طباعته" : "اختر النطاق والفترة ثم اطبع أو احفظ PDF"}</p>
+            <p className="sub">{isParent ? "تابع تقييم ابنك يومياً وأسبوعياً وشهرياً — ويمكنك طباعته" : "اختر النطاق والجلسة ثم اطبع أو احفظ PDF"}</p>
           </div>
           <button className="manage-btn print-btn" onClick={() => window.print()}>
             <Icon name="printer" size={16} /> طباعة / حفظ PDF

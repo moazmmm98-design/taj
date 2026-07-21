@@ -7,15 +7,15 @@
 export const FIELDS = [
   {
     icon: "book-open", title: "الحفظ", items: [
-      { key: "hifz_p1",      label: "مقدار الحفظ (الفترة الأولى)",  type: "range" },
-      { key: "hifz_p2",      label: "مقدار الحفظ (الفترة الثانية)", type: "range" },
+      { key: "hifz_p1",      label: "مقدار الحفظ (الجلسة الأولى)",  type: "range" },
+      { key: "hifz_p2",      label: "مقدار الحفظ (الجلسة الثانية)", type: "range" },
       { key: "hifz_quality", label: "جودة الحفظ",                    type: "number", max: 20 },
     ],
   },
   {
     icon: "repeat", title: "المراجعة", items: [
-      { key: "rev_p1",       label: "مقدار المراجعة (الفترة الأولى)",  type: "range" },
-      { key: "rev_p2",       label: "مقدار المراجعة (الفترة الثانية)", type: "range" },
+      { key: "rev_p1",       label: "مقدار المراجعة (الجلسة الأولى)",  type: "range" },
+      { key: "rev_p2",       label: "مقدار المراجعة (الجلسة الثانية)", type: "range" },
       { key: "rev_quality",  label: "جودة المراجعة",                    type: "number", max: 20 },
     ],
   },
