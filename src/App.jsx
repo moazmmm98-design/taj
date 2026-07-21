@@ -8,7 +8,7 @@ import ManageScreen from "./components/ManageScreen.jsx";
 import ParentAccessScreen from "./components/ParentAccessScreen.jsx";
 import ReportsScreen from "./components/ReportsScreen.jsx";
 import Toast from "./components/Toast.jsx";
-import { ADMIN_PASSWORD, SCORE_KEYS, genCode, arNum } from "./data.js";
+import { ADMIN_PASSWORD, SCORE_KEYS, genCode, arNum, TODAY, recordFor } from "./data.js";
 import {
   loadCircles, saveCircle, saveCircleInfo, removeCircle, saveStudents, saveStudentName,
   saveStudentParentCode, removeStudent, saveAccessCode, saveEvaluation, getAdminPasswordHash, setAdminPasswordHash,
@@ -73,7 +73,7 @@ export default function App() {
   const [circles, setCircles] = useState([]);
   const [session, setSession] = useState(initialSession); // null | {role:'sheikh', circleId} | {role:'admin'}
   const [view, setView] = useState(restoreView(initialSession));
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => TODAY);
   const [theme, setTheme] = useState(null);
   const [toast, setToast] = useState({ msg: "", ok: true, visible: false });
   const [loading, setLoading] = useState(true);
@@ -342,17 +342,38 @@ export default function App() {
     persist(() => removeStudent(sid));
   };
 
+  // يعيد بناء سجل الطالب التاريخي لتاريخ محدّد (للتقييمات غير اليوم الحالي)
+  const upsertHistory = (student, day, { scores, ranges, notes }, done) => {
+    const prev = (student.history || []).find((r) => r.date === day);
+    const rest = (student.history || []).filter((r) => r.date !== day);
+    const entry = {
+      date: day, scores: { ...scores }, ranges: { ...ranges }, notes: notes || "",
+      total: evalTotal(scores), done: done !== undefined ? done : (prev ? prev.done !== false : false),
+    };
+    return [...rest, entry].sort((a, b) => (a.date < b.date ? -1 : 1));
+  };
+
   const handlePersist = (idx, { scores, ranges, notes }) => {
-    patchStudent(view.circleId, idx, { scores: { ...scores }, ranges: { ...ranges }, notes });
+    if (date === TODAY) {
+      patchStudent(view.circleId, idx, { scores: { ...scores }, ranges: { ...ranges }, notes });
+    } else {
+      const student = circleById(view.circleId).students[idx];
+      patchStudent(view.circleId, idx, { history: upsertHistory(student, date, { scores, ranges, notes }) });
+    }
   };
 
   const handleSaveAndNext = (idx, { scores, ranges, notes }) => {
     const circleId = view.circleId;
-    patchStudent(circleId, idx, { scores: { ...scores }, ranges: { ...ranges }, notes, done: true });
+    if (date === TODAY) {
+      patchStudent(circleId, idx, { scores: { ...scores }, ranges: { ...ranges }, notes, done: true });
+    } else {
+      const student = circleById(circleId).students[idx];
+      patchStudent(circleId, idx, { history: upsertHistory(student, date, { scores, ranges, notes }, true) });
+    }
 
     const students = circleById(circleId).students;
     persist(() => saveEvaluation(students[idx].id, date, { scores, ranges, notes, total: evalTotal(scores), done: true }));
-    const isDone = (i) => i === idx || students[i].done;
+    const isDone = (i) => i === idx || recordFor(students[i], date).done;
     let next = -1;
     for (let step = 1; step < students.length; step++) {
       const i = (idx + step) % students.length;

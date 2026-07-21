@@ -2,14 +2,15 @@ import { useState } from "react";
 import Icon from "./Icon.jsx";
 import ProgressBar from "./ProgressBar.jsx";
 import DatePicker from "./DatePicker.jsx";
-import { arNum, initials, totalOf, gradeOf, doneCount, MAX_TOTAL } from "../data.js";
+import { arNum, initials, gradeOf, recordFor, totalForDate, doneCountForDate, MAX_TOTAL } from "../data.js";
 
-function StudentRow({ student, onOpen }) {
-  const total = totalOf(student);
+function StudentRow({ student, date, onOpen }) {
+  const done = recordFor(student, date).done;
+  const total = totalForDate(student, date);
   const grade = gradeOf(total);
   return (
     <button
-      className={"srow" + (student.done ? " done" : "")}
+      className={"srow" + (done ? " done" : "")}
       onClick={() => onOpen(student.id)}
     >
       <div className="avatar">{initials(student.name)}</div>
@@ -17,7 +18,7 @@ function StudentRow({ student, onOpen }) {
         <div className="srow-name">{student.name}</div>
         <div className="srow-meta">
           {student.juz ? `الجزء ${arNum(student.juz)}` : "طالب جديد"}
-          {student.done && (
+          {done && (
             <>
               {" · "}
               <span style={{ color: `var(${grade.v})`, fontWeight: 700 }}>{grade.label}</span>
@@ -25,7 +26,7 @@ function StudentRow({ student, onOpen }) {
           )}
         </div>
       </div>
-      {student.done ? (
+      {done ? (
         <span className="score-badge" style={{ color: `var(${grade.v})`, borderColor: `var(${grade.v})` }}>
           {arNum(total)}<em>/{arNum(MAX_TOTAL)}</em>
         </span>
@@ -39,7 +40,7 @@ function StudentRow({ student, onOpen }) {
 export default function StudentsScreen({ circle, date, onChangeDate, onBack, onReports, onOpenStudent }) {
   const [q, setQ] = useState("");
   const tot = circle.students.length;
-  const d = doneCount(circle);
+  const d = doneCountForDate(circle, date);
   const pct = tot ? Math.round((d / tot) * 100) : 0;
   const list = circle.students.filter((s) => s.name.includes(q.trim()));
 
@@ -82,7 +83,7 @@ export default function StudentsScreen({ circle, date, onChangeDate, onBack, onR
 
       <div className="student-list">
         {list.length ? (
-          list.map((s) => <StudentRow key={s.id} student={s} onOpen={onOpenStudent} />)
+          list.map((s) => <StudentRow key={s.id} student={s} date={date} onOpen={onOpenStudent} />)
         ) : (
           <div className="empty">لا يوجد طالب باسم «{q}»</div>
         )}

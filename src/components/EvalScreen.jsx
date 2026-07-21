@@ -5,7 +5,7 @@ import NumberField from "./NumberField.jsx";
 import PointsChoice from "./PointsChoice.jsx";
 import TotalSummary from "./TotalSummary.jsx";
 import {
-  FIELDS, isComplete, arNum, initials, qVarByRatio, POINT_LABELS,
+  FIELDS, isComplete, arNum, initials, qVarByRatio, POINT_LABELS, recordFor,
 } from "../data.js";
 
 const RECS = ["أداء متميز، واصل", "بحاجة لمزيد من المراجعة", "ينصح بمتابعة الحضور", "تحسّن ملحوظ هذا اليوم"];
@@ -14,19 +14,21 @@ export default function EvalScreen({
   circle, studentIdx, date, onBack, onPersist, onSaveAndNext, onNav, toast,
 }) {
   const student = circle.students[studentIdx];
-  const [scores, setScores] = useState({ ...student.scores });
-  const [ranges, setRanges] = useState({ ...student.ranges });
-  const [notes, setNotes] = useState(student.notes || "");
+  const saved = recordFor(student, date);
+  const [scores, setScores] = useState({ ...saved.scores });
+  const [ranges, setRanges] = useState({ ...saved.ranges });
+  const [notes, setNotes] = useState(saved.notes || "");
   const [recording, setRecording] = useState(false);
   const recogRef = useRef(null);
   const taRef = useRef(null);
 
   useEffect(() => {
-    setScores({ ...student.scores });
-    setRanges({ ...student.ranges });
-    setNotes(student.notes || "");
+    const rec = recordFor(student, date);
+    setScores({ ...rec.scores });
+    setRanges({ ...rec.ranges });
+    setNotes(rec.notes || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [studentIdx, circle.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [studentIdx, circle.id, date]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const persist = (s, r, n) => onPersist(studentIdx, { scores: s, ranges: r, notes: n });
 
@@ -192,8 +194,8 @@ export default function EvalScreen({
       <div className="actionbar">
         <div className="actionbar-in">
           <button className="nav-btn" onClick={() => navTo(-1)} disabled={studentIdx === 0} title="السابق"><Icon name="chevron-right" /></button>
-          <button className={"save-btn" + (student.done ? " done-state" : "")} onClick={save}>
-            {student.done ? <><Icon name="check" size={18} /> محفوظ — التالي</> : "حفظ والانتقال للتالي"}
+          <button className={"save-btn" + (saved.done ? " done-state" : "")} onClick={save}>
+            {saved.done ? <><Icon name="check" size={18} /> محفوظ — التالي</> : "حفظ والانتقال للتالي"}
           </button>
           <button className="nav-btn" onClick={() => navTo(1)} disabled={studentIdx === total - 1} title="التالي"><Icon name="chevron-left" /></button>
         </div>

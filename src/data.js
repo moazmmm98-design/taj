@@ -76,11 +76,18 @@ export const GRADES = [
 export const SURAHS = ["الفاتحة","البقرة","آل عمران","النساء","المائدة","الأنعام","الأعراف","الأنفال","التوبة","يونس","هود","يوسف","الرعد","إبراهيم","الحجر","النحل","الإسراء","الكهف","مريم","طه","الأنبياء","الحج","المؤمنون","النور","الفرقان","الشعراء","النمل","القصص","العنكبوت","الروم","لقمان","السجدة","الأحزاب","سبأ","فاطر","يس","الصافات","ص","الزمر","غافر","فصلت","الشورى","الزخرف","الدخان","الجاثية","الأحقاف","محمد","الفتح","الحجرات","ق","الذاريات","الطور","النجم","القمر","الرحمن","الواقعة","الحديد","المجادلة","الحشر","الممتحنة","الصف","الجمعة","المنافقون","التغابن","الطلاق","التحريم","الملك","القلم","الحاقة","المعارج","نوح","الجن","المزمل","المدثر","القيامة","الإنسان","المرسلات","النبأ","النازعات","عبس","التكوير","الانفطار","المطففين","الانشقاق","البروج","الطارق","الأعلى","الغاشية","الفجر","البلد","الشمس","الليل","الضحى","الشرح","التين","العلق","القدر","البينة","الزلزلة","العاديات","القارعة","التكاثر","العصر","الهمزة","الفيل","قريش","الماعون","الكوثر","الكافرون","النصر","المسد","الإخلاص","الفلق","الناس"];
 
 // ---- تواريخ (ISO yyyy-mm-dd) ----
-export const TODAY = new Date().toISOString().slice(0, 10);
+// نستخدم التاريخ المحلي لا UTC، وإلا انزاح اليوم في المناطق ذات التوقيت الموجب (مثل السعودية)
+export const isoDate = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+export const TODAY = isoDate(new Date());
 export const addDays = (dateStr, n) => {
   const d = new Date(dateStr + "T00:00:00");
   d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  return isoDate(d);
 };
 
 // هوية المخيم
@@ -108,6 +115,24 @@ export const totalOf = (student) =>
 export const isComplete = (scores) => SCORE_KEYS.every((k) => scores?.[k] != null && scores[k] !== "");
 export const gradeOf = (total) => GRADES.find((g) => total >= g.min);
 export const doneCount = (circle) => circle.students.filter((s) => s.done).length;
+
+// السجل المعروض لطالب في تاريخ محدد: مخزن اليوم الحيّ أو من السجل التاريخي
+export const recordFor = (student, date) => {
+  if (date === TODAY) {
+    return {
+      scores: student.scores || {}, ranges: student.ranges || {},
+      notes: student.notes || "", done: !!student.done,
+    };
+  }
+  const h = (student.history || []).find((r) => r.date === date);
+  return h
+    ? { scores: h.scores || {}, ranges: h.ranges || {}, notes: h.notes || "", done: h.done !== false }
+    : { scores: {}, ranges: {}, notes: "", done: false };
+};
+export const totalForDate = (student, date) =>
+  SCORE_KEYS.reduce((a, k) => a + (Number(recordFor(student, date).scores?.[k]) || 0), 0);
+export const doneCountForDate = (circle, date) =>
+  circle.students.filter((s) => recordFor(s, date).done).length;
 
 // لون حسب النسبة (0..1) من مقياس الجودة
 export const qVarByRatio = (r) => QVARS[Math.min(4, Math.max(0, Math.round(r * 4)))];

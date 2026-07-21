@@ -43,7 +43,7 @@ export async function loadCircles() {
         done: Boolean(today?.done),
         yesterday: { scores: yRec?.scores || {}, ranges: yRec?.ranges || {} },
         history: recs.filter((r) => r.date !== TODAY)
-          .map((r) => ({ date: r.date, scores: r.scores || {}, ranges: r.ranges || {}, total: r.total || 0 })),
+          .map((r) => ({ date: r.date, scores: r.scores || {}, ranges: r.ranges || {}, notes: r.notes || "", total: r.total || 0, done: r.done !== false })),
       };
     }),
   }));
