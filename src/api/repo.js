@@ -91,6 +91,12 @@ export async function removeStudent(id) {
   const { error } = await supabase.from("students").delete().eq("id", id);
   if (error) throw error;
 }
+// نقل الطالب لحلقة أخرى — تقييماته مرتبطة بمعرّفه فتبقى معه
+export async function moveStudent(id, toCircleId) {
+  if (!hasSupabase) return;
+  const { error } = await supabase.from("students").update({ circle_id: toCircleId }).eq("id", id);
+  if (error) throw error;
+}
 export async function saveAccessCode(id, code) {
   if (!hasSupabase) return;
   const { error } = await supabase.from("circles").update({ access_code: code }).eq("id", id);

@@ -46,8 +46,30 @@ function AddCircleForm({ onAddCircle }) {
   );
 }
 
+/* ---------- move-student control ---------- */
+function MoveStudent({ circle, student, otherCircles, onMoveStudent }) {
+  const [open, setOpen] = useState(false);
+  if (!otherCircles.length) return null;
+  if (!open) {
+    return (
+      <button className="ms-move" onClick={() => setOpen(true)} title="نقل الطالب لحلقة أخرى">
+        <Icon name="repeat" size={15} />
+      </button>
+    );
+  }
+  return (
+    <select className="ms-move-sel" autoFocus defaultValue=""
+      onChange={(e) => { if (e.target.value) onMoveStudent(circle.id, student.id, e.target.value); setOpen(false); }}
+      onBlur={() => setOpen(false)} aria-label="نقل الطالب إلى حلقة">
+      <option value="" disabled>نقل إلى…</option>
+      {otherCircles.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+    </select>
+  );
+}
+
 /* ---------- per-circle student manager ---------- */
-function CircleCard({ circle, onUpdateCircle, onDeleteCircle, onAddStudents, onRenameStudent, onDeleteStudent, toast }) {
+function CircleCard({ circle, allCircles, onUpdateCircle, onDeleteCircle, onAddStudents, onRenameStudent, onDeleteStudent, onMoveStudent, toast }) {
+  const otherCircles = allCircles.filter((c) => c.id !== circle.id);
   const [name, setName] = useState("");
   const [bulk, setBulk] = useState(false);
   const [bulkText, setBulkText] = useState("");
@@ -143,6 +165,7 @@ function CircleCard({ circle, onUpdateCircle, onDeleteCircle, onAddStudents, onR
               <div className="avatar sm">{initials(s.name) || "؟"}</div>
               <input className="ms-name" value={s.name}
                 onChange={(e) => onRenameStudent(circle.id, s.id, e.target.value)} aria-label="اسم الطالب" />
+              <MoveStudent circle={circle} student={s} otherCircles={otherCircles} onMoveStudent={onMoveStudent} />
               <button className="ms-del" onClick={() => onDeleteStudent(circle.id, s.id)} title="حذف الطالب"><Icon name="x" size={15} /></button>
             </div>
           ))}
@@ -154,7 +177,7 @@ function CircleCard({ circle, onUpdateCircle, onDeleteCircle, onAddStudents, onR
 
 /* ============ main ============ */
 export default function ManageScreen({
-  circles, onBack, onAddCircle, onUpdateCircle, onDeleteCircle, onAddStudents, onRenameStudent, onDeleteStudent, toast,
+  circles, onBack, onAddCircle, onUpdateCircle, onDeleteCircle, onAddStudents, onRenameStudent, onDeleteStudent, onMoveStudent, toast,
 }) {
   return (
     <div className="page admin">
@@ -166,10 +189,11 @@ export default function ManageScreen({
 
       <div className="manage-list">
         {circles.map((c) => (
-          <CircleCard key={c.id} circle={c}
+          <CircleCard key={c.id} circle={c} allCircles={circles}
             onUpdateCircle={onUpdateCircle}
             onDeleteCircle={onDeleteCircle} onAddStudents={onAddStudents}
-            onRenameStudent={onRenameStudent} onDeleteStudent={onDeleteStudent} toast={toast} />
+            onRenameStudent={onRenameStudent} onDeleteStudent={onDeleteStudent}
+            onMoveStudent={onMoveStudent} toast={toast} />
         ))}
       </div>
     </div>

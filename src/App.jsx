@@ -11,7 +11,7 @@ import Toast from "./components/Toast.jsx";
 import { ADMIN_PASSWORD, SCORE_KEYS, genCode, arNum, TODAY, recordFor } from "./data.js";
 import {
   loadCircles, saveCircle, saveCircleInfo, removeCircle, saveStudents, saveStudentName,
-  saveStudentParentCode, removeStudent, saveAccessCode, saveEvaluation, getAdminPasswordHash, setAdminPasswordHash,
+  saveStudentParentCode, removeStudent, moveStudent as moveStudentApi, saveAccessCode, saveEvaluation, getAdminPasswordHash, setAdminPasswordHash,
   listAdmins, findAdminByPassword, getAdminById, createAdmin, updateAdmin, deleteAdmin,
 } from "./api/repo.js";
 import { sha256Hex } from "./lib/hash.js";
@@ -361,6 +361,21 @@ export default function App() {
       : { ...c, students: c.students.filter((s) => s.id !== sid) }));
     persist(() => removeStudent(sid));
   };
+  // نقل الطالب بكامل بياناته (تقييماته وسجله) من حلقة إلى أخرى
+  const moveStudent = (fromCircleId, sid, toCircleId) => {
+    if (fromCircleId === toCircleId) return;
+    setCircles((prev) => {
+      const student = prev.find((c) => c.id === fromCircleId)?.students.find((s) => s.id === sid);
+      if (!student) return prev;
+      return prev.map((c) => {
+        if (c.id === fromCircleId) return { ...c, students: c.students.filter((s) => s.id !== sid) };
+        if (c.id === toCircleId) return { ...c, students: [...c.students, student] };
+        return c;
+      });
+    });
+    showToast("نُقل الطالب مع الحفاظ على تقييماته");
+    persist(() => moveStudentApi(sid, toCircleId));
+  };
 
   // يعيد بناء سجل الطالب التاريخي لتاريخ محدّد (للتقييمات غير اليوم الحالي)
   const upsertHistory = (student, day, { scores, ranges, notes }, done) => {
@@ -484,6 +499,7 @@ export default function App() {
         onAddStudents={addStudents}
         onRenameStudent={renameStudent}
         onDeleteStudent={deleteStudent}
+        onMoveStudent={moveStudent}
         toast={showToast}
       />
     );
