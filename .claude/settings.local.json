@@ -5,7 +5,9 @@
       "Artifact",
       "PowerShell(Set-Location \"G:\\\\Summer 2023\\\\Project-Masar\\\\Projects\\\\3_taj\"; Start-Sleep -Seconds 3; try { $r = Invoke-WebRequest -Uri \"http://localhost:5173\" -UseBasicParsing -TimeoutSec 8; \"HTTP \" + $r.StatusCode; if\\($r.Content -match 'id=\"root\"'\\){\"root div present ✓\"} } catch { \"dev server not reachable: \" + $_.Exception.Message })",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174)",
+      "Bash(node -e \"const fs=require\\('fs'\\);const b=fs.readFileSync\\('public/logo.jpg'\\);let i=2;while\\(i<b.length\\){if\\(b[i]!==0xFF\\)break;const m=b[i+1];if\\(m>=0xC0&&m<=0xC3\\){console.log\\('height',b.readUInt16BE\\(i+5\\),'width',b.readUInt16BE\\(i+7\\)\\);break;}i+=2+b.readUInt16BE\\(i+2\\);}\")",
+      "Bash(awk '{print $5, $9}')"
     ]
   }
 }

@@ -102,6 +102,29 @@ input, textarea { font-family: inherit; }
 .icon-btn:hover { border-color: var(--line-strong); transform: translateY(-1px); }
 .icon-btn:active { transform: scale(.94); }
 
+/* ---------- install (PWA) button ---------- */
+.install-wrap { position: relative; display: inline-flex; }
+.install-btn {
+  color: #fff; border-color: transparent;
+  background: linear-gradient(135deg, var(--primary), var(--primary-ink));
+}
+.install-btn:hover { border-color: transparent; filter: brightness(1.06); }
+.install-ios-back { position: fixed; inset: 0; z-index: 40; }
+.install-ios-pop {
+  position: absolute; top: calc(100% + 10px); right: 0; z-index: 41; width: 260px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+  box-shadow: var(--shadow-md); padding: 14px 15px; text-align: right;
+  animation: fadeUp .2s var(--ease) both;
+}
+.install-ios-pop b { display: block; font-size: 14px; margin-bottom: 7px; }
+.install-ios-pop p { font-size: 13px; color: var(--ink-2); line-height: 1.85; margin: 0; }
+.install-ios-pop .ios-inline { vertical-align: -3px; color: var(--primary); }
+.install-ios-pop .ios-em { color: var(--ink); font-weight: 600; }
+.install-ios-ok {
+  margin-top: 11px; width: 100%; padding: 8px; border-radius: 10px; border: none;
+  background: var(--primary); color: #fff; font-weight: 600; font-size: 13px;
+}
+
 /* ---------- generic ---------- */
 .page { padding: 18px 0 40px; animation: fadeUp .34s var(--ease) both; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }

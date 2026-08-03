@@ -1,4 +1,5 @@
 import Icon from "./Icon.jsx";
+import InstallButton from "./InstallButton.jsx";
 import logo from "../assets/logo.jpg";
 import { ORG } from "../data.js";
 
@@ -16,6 +17,8 @@ export default function AppBar({ identity, session, onLogout, theme, onToggleThe
           <span>{identity || ORG.waqf}</span>
         </div>
         <div className="ab-spacer" />
+
+        <InstallButton />
 
         {session && (
           <button className="logout-btn" onClick={onLogout} title="تسجيل الخروج">
