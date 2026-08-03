@@ -43,12 +43,13 @@ export default function InstallButton() {
   return (
     <div className="install-wrap">
       <button
-        className="icon-btn install-btn"
+        className="install-btn"
         onClick={onClick}
         title="تثبيت التطبيق على الجهاز"
         aria-label="تثبيت التطبيق على الجهاز"
       >
-        <Icon name="download" size={18} />
+        <Icon name="download" size={16} />
+        <span className="install-lbl">تثبيت التطبيق</span>
       </button>
 
       {ios && showIosHelp && (
